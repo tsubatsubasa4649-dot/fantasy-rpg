@@ -37,7 +37,7 @@
             4
           ],
           "label": "リッキー",
-          "image": "elder",
+          "image": "ricky_field",
           "dialogue": {
             "1": "夜回りが足りない。手伝ってくれないか？",
             "2": "橋の向こうが気がかりだ。",
@@ -61,7 +61,7 @@
             2
           ],
           "label": "メリル",
-          "image": "elder",
+          "image": "meri_field",
           "visible_when": {
             "phase_is": 1
           },
@@ -86,7 +86,7 @@
             2
           ],
           "label": "ゴロー",
-          "image": "elder",
+          "image": "goro_field",
           "visible_when": {
             "phase_gte": 2
           },
