@@ -3,7 +3,7 @@ extends Control
 const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG ART-08 / BATTLE SCALE"
+const BUILD_ID := "RPG ART-09 / PARTY SPRITES"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -180,6 +180,28 @@ func _load_art() -> void:
 		if id in ["hero", "elder", "slime", "guardian", "house", "cave-entrance"]:
 			image = _trim_transparent_padding(image)
 		textures[id] = ImageTexture.create_from_image(image)
+	_load_party_atlas()
+
+func _load_party_atlas() -> void:
+	# Images come from a hand-selected, AI-generated art sheet, not drawing code.
+	var path: String = "res://assets/party_sheet.b64"
+	if not FileAccess.file_exists(path):
+		push_warning("Generated party art atlas is absent; old sprites remain available")
+		return
+	var bytes: PackedByteArray = Marshalls.base64_to_raw(FileAccess.get_file_as_string(path).strip_edges())
+	var sheet := Image.new()
+	if sheet.load_png_from_buffer(bytes) != OK:
+		push_warning("Generated party sprite atlas failed PNG decoding")
+		return
+	if sheet.get_width() != 160 or sheet.get_height() != 104:
+		push_warning("Generated party atlas has unexpected dimensions")
+		return
+	var ids: Array[String] = ["hero", "ricky", "meri", "goro"]
+	for index in range(ids.size()):
+		var field_image := sheet.get_region(Rect2i(index * 40, 0, 40, 40))
+		var battle_image := sheet.get_region(Rect2i(index * 40, 40, 40, 64))
+		textures[ids[index] + "_field"] = ImageTexture.create_from_image(_trim_transparent_padding(field_image))
+		textures[ids[index] + "_battle"] = ImageTexture.create_from_image(_trim_transparent_padding(battle_image))
 
 func _panel_style(fill: Color, border: Color = Color("#657da8")) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
@@ -589,7 +611,7 @@ func _draw_map() -> void:
 			map_grid.add_child(cell)
 			var sprite_id: String = ""
 			if tile_pos == Vector2i(x, y):
-				sprite_id = "hero"
+				sprite_id = "hero_field" if textures.has("hero_field") else "hero"
 			elif symbol == "H":
 				sprite_id = "house"
 			else:
