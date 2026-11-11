@@ -226,7 +226,6 @@ func _show_nearby_actions() -> void:
 		last_point_id = ""
 		_add_button(action_list, "辺りを調べる", _interact)
 		return
-	last_point_id = str(point.get("id"))
 	var phase: String = str(game.state.get("phase", 1))
 	var dialogue: Dictionary = point.get("dialogue", {})
 	if last_point_id != str(point.get("id")) or last_phase != int(game.state.get("phase", 1)):
