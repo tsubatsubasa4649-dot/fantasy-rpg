@@ -3,7 +3,7 @@ extends Control
 const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG UX-12 / SLOW WALK AUDIO CHECK"
+const BUILD_ID := "RPG WALK-13 / FOUR DIRECTION"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -53,7 +53,11 @@ var audio_unlocked: bool = false
 var pending_choices: bool = false
 var walking: bool = false
 var hero_overlay: TextureRect
-const WALK_DURATION := 0.42
+const WALK_DURATION := 0.28
+var walk_elapsed: float = 0.0
+var walk_sprite_direction: int = 0
+var walk_sprite_frame: int = 1
+var walk_textures: Array = []
 var held_direction: Vector2i = Vector2i.ZERO
 var repeat_clock: float = 0.0
 const FIRST_REPEAT_DELAY := 0.08
@@ -189,6 +193,44 @@ func _load_art() -> void:
 			image = _trim_transparent_padding(image)
 		textures[id] = ImageTexture.create_from_image(image)
 	_load_party_atlas()
+	_load_walk_frames()
+
+func _load_walk_frames() -> void:
+	# Generated 4x3 character art: 4 direction rows, 3 animation columns.
+	# Each tile is cropped from the user-approved illustration; no drawing in code.
+	var path := "res://assets/hero_walk.b64"
+	if not FileAccess.file_exists(path):
+		push_error("Hero walking sheet missing: " + path)
+		return
+	var bytes: PackedByteArray = Marshalls.base64_to_raw(FileAccess.get_file_as_string(path).strip_edges())
+	var sheet := Image.new()
+	if sheet.load_png_from_buffer(bytes) != OK or sheet.get_width() != 144 or sheet.get_height() != 224:
+		push_error("Generated walking sheet must be a 144x224 PNG.")
+		return
+	var atlas: Texture2D = ImageTexture.create_from_image(sheet)
+	for row in range(4):
+		var frames: Array[AtlasTexture] = []
+		for col in range(3):
+			var sprite := AtlasTexture.new()
+			sprite.atlas = atlas
+			sprite.region = Rect2(col * 48, row * 56, 48, 56)
+			frames.append(sprite)
+		walk_textures.append(frames)
+	textures["hero_walk_atlas"] = atlas
+
+func _face_row(direction: Vector2i) -> int:
+	if direction.y < 0: return 3
+	if direction.y > 0: return 0
+	if direction.x < 0: return 1
+	return 2
+
+func _set_hero_walk_frame(frame: int) -> void:
+	walk_sprite_frame = clampi(frame, 0, 2)
+	if hero_overlay == null or walk_textures.size() != 4:
+		return
+	hero_overlay.texture = walk_textures[walk_sprite_direction][walk_sprite_frame]
+	# The sheet contains separate left- and right-facing sprites.
+	hero_overlay.flip_h = false
 
 func _load_party_atlas() -> void:
 	# Images come from a hand-selected, AI-generated art sheet, not drawing code.
@@ -333,7 +375,7 @@ func _build_ui() -> void:
 	hud_panel.add_child(hud_title)
 
 	build_label = Label.new()
-	build_label.text = "UX-12"
+	build_label.text = "WALK-13"
 	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	build_label.add_theme_font_size_override("font_size", 11)
 	build_label.add_theme_color_override("font_color", Color("#9fb5d8"))
@@ -377,6 +419,8 @@ func _build_ui() -> void:
 	hero_overlay.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	hero_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hero_overlay.texture = textures.get("hero_field", textures.get("hero"))
+	walk_sprite_direction = _face_row(facing)
+	_set_hero_walk_frame(1)
 	map_frame.add_child(hero_overlay)
 
 	battle_panel = VBoxContainer.new()
@@ -584,7 +628,13 @@ func _end_hold() -> void:
 	repeat_clock = 0.0
 
 func _process(delta: float) -> void:
-	if held_direction == Vector2i.ZERO or walking:
+	# Walk animation advances independently of whether the player keeps a key held.
+	if walking:
+		walk_elapsed += delta
+		var phase: float = walk_elapsed / WALK_DURATION
+		_set_hero_walk_frame(0 if phase < 0.32 else (1 if phase < 0.63 else 2))
+		return
+	if held_direction == Vector2i.ZERO:
 		return
 	if battle_active or not game.state.get("ending", "").is_empty():
 		_end_hold()
@@ -665,7 +715,9 @@ func _sync_hero_overlay() -> void:
 		return
 	hero_overlay.size = Vector2(cell_size, cell_size)
 	hero_overlay.position = _hero_cell_position(tile_pos)
-	hero_overlay.flip_h = facing.x > 0
+	walk_sprite_direction = _face_row(facing)
+	if not walking:
+		_set_hero_walk_frame(1)
 
 func _draw_map() -> void:
 	for item in map_grid.get_children():
@@ -750,8 +802,9 @@ func _walk(dx: int, dy: int) -> void:
 		return
 	_unlock_audio()
 	facing = Vector2i(dx, dy)
-	if hero_overlay != null:
-		hero_overlay.flip_h = facing.x > 0
+	walk_sprite_direction = _face_row(facing)
+	if not walking:
+		_set_hero_walk_frame(1)
 	var goal := tile_pos + facing
 	var rows: Array = _current_rows()
 	if goal.y < 0 or goal.y >= rows.size() or goal.x < 0 or goal.x >= str(rows[goal.y]).length():
@@ -763,7 +816,8 @@ func _walk(dx: int, dy: int) -> void:
 	previous_tile_pos = tile_pos
 	tile_pos = goal
 	walking = true
-	_play_sfx("step")
+	walk_elapsed = 0.0
+	_set_hero_walk_frame(0)
 	if hero_overlay == null:
 		walking = false
 		_refresh()
@@ -774,6 +828,7 @@ func _walk(dx: int, dy: int) -> void:
 	tween.tween_property(hero_overlay, "position", finish, WALK_DURATION).set_trans(Tween.TRANS_LINEAR)
 	tween.tween_callback(func():
 		walking = false
+		_set_hero_walk_frame(1)
 		_refresh()
 		call_deferred("_sync_hero_overlay")
 	)
@@ -948,6 +1003,8 @@ func _load() -> void:
 	_refresh()
 
 func _restore_location() -> void:
+	walk_elapsed = 0.0
+	walking = false
 	var place: String = str(game.state.get("scene_map", "field"))
 	if not game.registry.by_id("maps", place).is_empty():
 		location_id = place
