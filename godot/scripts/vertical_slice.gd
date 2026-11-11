@@ -3,7 +3,7 @@ extends Control
 const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG UI-06 / RESPONSIVE"
+const BUILD_ID := "RPG UI-07 / HUD & BATTLE"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -26,6 +26,9 @@ var battle_commands: HBoxContainer
 var direction_controls: HBoxContainer
 var root_column: Control
 var hud_panel: Panel
+var hud_title: Label
+var build_label: Label
+var battle_backdrop: Panel
 var map_frame: Panel
 var map_center: CenterContainer
 var dialogue_panel: Panel
@@ -184,31 +187,25 @@ func _build_ui() -> void:
 	hud_panel.add_theme_stylebox_override("panel", _panel_style(Color("#172744")))
 	root_column.add_child(hud_panel)
 
-	var title := Label.new()
-	title.text = "終わりの地図"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 24)
-	hud_panel.add_child(title)
-	title.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	title.position.y = 4
-	title.size.y = 31
+	hud_title = Label.new()
+	hud_title.text = "終わりの地図"
+	hud_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	hud_title.add_theme_font_size_override("font_size", 22)
+	hud_panel.add_child(hud_title)
 
-	var build_label := Label.new()
-	build_label.text = "UI-06"
-	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	build_label = Label.new()
+	build_label.text = "UI-07"
+	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	build_label.add_theme_font_size_override("font_size", 11)
 	build_label.add_theme_color_override("font_color", Color("#9fb5d8"))
 	hud_panel.add_child(build_label)
-	build_label.position = Vector2(12, 5)
-	build_label.size = Vector2(72, 20)
 
 	status_label = Label.new()
-	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	status_label.add_theme_font_size_override("font_size", 15)
 	hud_panel.add_child(status_label)
-	status_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	status_label.position.y = 34
-	status_label.size.y = 25
+	status_label.position.y = 38
+	status_label.size.y = 24
 
 	menu_button = _add_button(hud_panel, "メニュー", _toggle_menu)
 	menu_button.add_theme_font_size_override("font_size", 15)
@@ -223,6 +220,11 @@ func _build_ui() -> void:
 	map_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	map_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	map_frame.add_child(map_center)
+
+	battle_backdrop = Panel.new()
+	battle_backdrop.add_theme_stylebox_override("panel", _panel_style(Color("#14233f"), Color("#9caec3")))
+	root_column.add_child(battle_backdrop)
+	battle_backdrop.visible = false
 	map_grid = GridContainer.new()
 	map_grid.columns = 10
 	map_grid.add_theme_constant_override("h_separation", 0)
@@ -231,14 +233,15 @@ func _build_ui() -> void:
 	map_center.add_child(map_grid)
 
 	battle_panel = VBoxContainer.new()
-	battle_panel.add_theme_constant_override("separation", 8)
+	battle_panel.add_theme_constant_override("separation", 22)
+	battle_panel.alignment = BoxContainer.ALIGNMENT_CENTER
 	root_column.add_child(battle_panel)
 	battle_visual = HBoxContainer.new()
 	battle_visual.alignment = BoxContainer.ALIGNMENT_CENTER
 	battle_visual.add_theme_constant_override("separation", 32)
 	battle_panel.add_child(battle_visual)
 	battle_enemy_sprite = _battle_portrait("slime")
-	battle_enemy_sprite.custom_minimum_size = Vector2(125, 140)
+	battle_enemy_sprite.custom_minimum_size = Vector2(148, 155)
 	battle_visual.add_child(battle_enemy_sprite)
 	var separator := Label.new()
 	separator.text = "VS"
@@ -248,6 +251,7 @@ func _build_ui() -> void:
 	battle_visual.add_child(battle_party_visual)
 	battle_status = Label.new()
 	battle_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	battle_status.add_theme_font_size_override("font_size", 19)
 	battle_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	battle_panel.add_child(battle_status)
 
@@ -337,9 +341,9 @@ func _layout_ui() -> void:
 	var h: float = screen.y
 	var margin: float = 12.0
 	var header_h: float = clampf(h * 0.075, 65, 78)
-	var map_h: float = clampf(h * 0.37, 230, 340)
+	var map_h: float = clampf(h * 0.335, 220, 330)
 	var dialogue_h: float = clampf(h * 0.085, 65, 85)
-	var actions_h: float = clampf(h * 0.095, 68, 90)
+	var actions_h: float = clampf(h * 0.148, 100, 140)
 	var bottom_h: float = h - header_h - map_h - dialogue_h - actions_h - 50.0
 	# Compact screen fallback: shrink the map before shrinking controls.
 	if bottom_h < 214.0:
@@ -348,8 +352,16 @@ func _layout_ui() -> void:
 	hud_panel.position = Vector2(margin, 5)
 	hud_panel.size = Vector2(w - margin * 2.0, header_h)
 	menu_button.position = Vector2(hud_panel.size.x - 99.0, 13)
+	hud_title.position = Vector2(12, 5)
+	hud_title.size = Vector2(hud_panel.size.x - 122.0, 31)
+	status_label.position = Vector2(12, 38)
+	status_label.size = Vector2(hud_panel.size.x - 122.0, 23)
+	build_label.position = Vector2(hud_panel.size.x - 97.0, 2)
+	build_label.size = Vector2(75, 15)
 	map_frame.position = Vector2(margin, header_h + 11)
 	map_frame.size = Vector2(w - margin * 2.0, map_h)
+	battle_backdrop.position = map_frame.position
+	battle_backdrop.size = map_frame.size
 	battle_panel.position = map_frame.position + Vector2(14, 20)
 	battle_panel.size = map_frame.size - Vector2(28, 40)
 	cell_size = mini(46, mini(int((map_frame.size.x - 22.0) / 10.0), int((map_frame.size.y - 20.0) / 7.0)))
@@ -463,9 +475,9 @@ func _current_phase_name() -> String:
 func _refresh() -> void:
 	if not game.state.get("ending", "").is_empty():
 		_show_ending()
-	status_label.text = "Day %d / %s　仲間 %d人　編成 %s" % [
+	status_label.text = "Day %d　%s　仲間 %d人" % [
 		int(game.state.get("day", 0)), _current_phase_name(),
-		game.state.get("recruited", []).size(), ", ".join(game.state.get("party", []))
+		game.state.get("recruited", []).size()
 	]
 	var map_data: Dictionary = _map()
 	description_label.text = str(map_data.get("name", "")) + ("　｜地面が裂けている…" if int(game.state.get("phase", 1)) >= 3 else "")
@@ -474,6 +486,7 @@ func _refresh() -> void:
 		_refresh_battle()
 	else:
 		battle_panel.visible = false
+		battle_backdrop.visible = false
 		combat_controls.visible = false
 		map_frame.visible = true
 		action_scroll.visible = true
@@ -659,11 +672,13 @@ func _begin_battle(enemy_id: String) -> void:
 
 func _refresh_battle() -> void:
 	battle_panel.visible = true
+	battle_backdrop.visible = true
 	combat_controls.visible = true
 	map_frame.visible = false
 	action_scroll.visible = false
 	direction_controls.visible = false
 	management_panel.visible = false
+	menu_button.text = "メニュー"
 	_end_hold()
 	battle_status.text = battle.status_text() + "\nコマンド：" + battle.awaiting_name()
 	for button in battle_commands.get_children():
