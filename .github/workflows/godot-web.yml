@@ -29,6 +29,13 @@ jobs:
           use-dotnet: false
           include-templates: true
 
+      - name: Bundle open-license Japanese UI font
+        run: |
+          curl -fLsS --retry 3 "https://raw.githubusercontent.com/google/fonts/main/ofl/notosansjp/NotoSansJP%5Bwght%5D.ttf" -o godot/assets/NotoSansJP.ttf
+          curl -fLsS --retry 3 "https://raw.githubusercontent.com/google/fonts/main/ofl/notosansjp/OFL.txt" -o godot/assets/NotoSansJP-OFL.txt
+          test -s godot/assets/NotoSansJP.ttf
+          test -s godot/assets/NotoSansJP-OFL.txt
+
       - name: Import Godot resources
         run: godot --headless --path godot --import --quit
 
