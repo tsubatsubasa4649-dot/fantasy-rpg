@@ -50,5 +50,7 @@ jobs:
           git add godot-play/
           if ! git diff --staged --quiet; then
             git commit -m "Build Godot vertical slice [skip ci]"
+            git fetch origin main
+            git rebase origin/main
             git push origin HEAD:main
           fi
