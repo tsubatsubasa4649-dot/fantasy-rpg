@@ -3,7 +3,7 @@ extends Control
 const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG FIX-05 / MOBILE CONTROLS"
+const BUILD_ID := "RPG UI-06 / RESPONSIVE"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -24,7 +24,18 @@ var battle_enemy_sprite: TextureRect
 var battle_party_visual: VBoxContainer
 var battle_commands: HBoxContainer
 var direction_controls: HBoxContainer
-var root_column: VBoxContainer
+var root_column: Control
+var hud_panel: Panel
+var map_frame: Panel
+var map_center: CenterContainer
+var dialogue_panel: Panel
+var action_scroll: ScrollContainer
+var menu_button: Button
+var management_panel: HBoxContainer
+var combat_controls: HBoxContainer
+var screen_mode: String = "explore"
+var cell_size: int = 44
+var button_size: Vector2 = Vector2(94, 74)
 var last_point_id: String = ""
 var last_phase: int = 0
 var held_direction: Vector2i = Vector2i.ZERO
@@ -134,58 +145,142 @@ func _load_art() -> void:
 			image = _remove_house_background(image)
 		textures[id] = ImageTexture.create_from_image(image)
 
+func _panel_style(fill: Color, border: Color = Color("#657da8")) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = fill
+	style.border_color = border
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(7)
+	style.content_margin_left = 10
+	style.content_margin_right = 10
+	style.content_margin_top = 7
+	style.content_margin_bottom = 7
+	return style
+
+func _style_button(button: Button, accent: bool = false) -> void:
+	var fill: Color = Color("#36557f") if accent else Color("#1d314e")
+	var pressed_fill := Color("#658db9") if accent else Color("#385a82")
+	button.add_theme_stylebox_override("normal", _panel_style(fill))
+	button.add_theme_stylebox_override("hover", _panel_style(fill.lightened(0.12)))
+	button.add_theme_stylebox_override("pressed", _panel_style(pressed_fill))
+	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	button.add_theme_color_override("font_color", Color("#f4eedb"))
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	button.focus_mode = Control.FOCUS_NONE
+
 func _build_ui() -> void:
 	var bg := ColorRect.new()
-	bg.color = Color("#121b2b")
+	bg.color = Color("#0b1426")
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
-	root_column = VBoxContainer.new()
+
+	root_column = Control.new()
 	root_column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root_column.add_theme_constant_override("separation", 7)
 	add_child(root_column)
+
+	hud_panel = Panel.new()
+	hud_panel.add_theme_stylebox_override("panel", _panel_style(Color("#172744")))
+	root_column.add_child(hud_panel)
+
 	var title := Label.new()
-	title.text = "終わりの地図｜Godot 縦切り試作"
+	title.text = "終わりの地図"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 24)
+	hud_panel.add_child(title)
+	title.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	title.position.y = 4
+	title.size.y = 31
+
 	var build_label := Label.new()
 	build_label.text = BUILD_ID
-	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	build_label.add_theme_font_size_override("font_size", 13)
-	root_column.add_child(build_label)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 22)
-	root_column.add_child(title)
+	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	build_label.add_theme_font_size_override("font_size", 11)
+	build_label.add_theme_color_override("font_color", Color("#9fb5d8"))
+	hud_panel.add_child(build_label)
+	build_label.position = Vector2(12, 5)
+	build_label.size = Vector2(190, 20)
+
 	status_label = Label.new()
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	status_label.add_theme_font_size_override("font_size", 16)
-	root_column.add_child(status_label)
-	description_label = Label.new()
-	description_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	description_label.add_theme_font_size_override("font_size", 17)
-	root_column.add_child(description_label)
-	var map_center := CenterContainer.new()
-	root_column.add_child(map_center)
+	status_label.add_theme_font_size_override("font_size", 15)
+	hud_panel.add_child(status_label)
+	status_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	status_label.position.y = 34
+	status_label.size.y = 25
+
+	menu_button = _add_button(hud_panel, "メニュー", _toggle_menu)
+	menu_button.add_theme_font_size_override("font_size", 15)
+	menu_button.custom_minimum_size = Vector2.ZERO
+	menu_button.size = Vector2(90, 45)
+	_style_button(menu_button)
+
+	map_frame = Panel.new()
+	map_frame.add_theme_stylebox_override("panel", _panel_style(Color("#101f30"), Color("#9caec3")))
+	root_column.add_child(map_frame)
+	map_center = CenterContainer.new()
+	map_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	map_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	map_frame.add_child(map_center)
 	map_grid = GridContainer.new()
 	map_grid.columns = 10
 	map_grid.add_theme_constant_override("h_separation", 0)
 	map_grid.add_theme_constant_override("v_separation", 0)
 	map_grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	map_center.add_child(map_grid)
+
+	battle_panel = VBoxContainer.new()
+	battle_panel.add_theme_constant_override("separation", 8)
+	root_column.add_child(battle_panel)
+	battle_visual = HBoxContainer.new()
+	battle_visual.alignment = BoxContainer.ALIGNMENT_CENTER
+	battle_visual.add_theme_constant_override("separation", 32)
+	battle_panel.add_child(battle_visual)
+	battle_enemy_sprite = _battle_portrait("slime")
+	battle_enemy_sprite.custom_minimum_size = Vector2(125, 140)
+	battle_visual.add_child(battle_enemy_sprite)
+	var separator := Label.new()
+	separator.text = "VS"
+	separator.add_theme_font_size_override("font_size", 23)
+	battle_visual.add_child(separator)
+	battle_party_visual = VBoxContainer.new()
+	battle_visual.add_child(battle_party_visual)
+	battle_status = Label.new()
+	battle_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	battle_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	battle_panel.add_child(battle_status)
+
+	dialogue_panel = Panel.new()
+	dialogue_panel.add_theme_stylebox_override("panel", _panel_style(Color("#182b4a"), Color("#7e94b8")))
+	root_column.add_child(dialogue_panel)
 	message_label = Label.new()
-	message_label.custom_minimum_size = Vector2(0, 44)
 	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	root_column.add_child(message_label)
-	var actions_scroll := ScrollContainer.new()
-	actions_scroll.custom_minimum_size = Vector2(0, 110)
-	actions_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	actions_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	root_column.add_child(actions_scroll)
+	message_label.add_theme_font_size_override("font_size", 18)
+	message_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	message_label.offset_left = 13
+	message_label.offset_right = -13
+	message_label.offset_top = 7
+	message_label.offset_bottom = -7
+	dialogue_panel.add_child(message_label)
+
+	description_label = Label.new()
+	description_label.add_theme_font_size_override("font_size", 14)
+	description_label.add_theme_color_override("font_color", Color("#afc6e7"))
+	root_column.add_child(description_label)
+
+	action_scroll = ScrollContainer.new()
+	action_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	action_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	root_column.add_child(action_scroll)
 	action_list = VBoxContainer.new()
 	action_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	actions_scroll.add_child(action_list)
+	action_list.add_theme_constant_override("separation", 5)
+	action_scroll.add_child(action_list)
+
 	direction_controls = HBoxContainer.new()
 	direction_controls.alignment = BoxContainer.ALIGNMENT_CENTER
 	direction_controls.add_theme_constant_override("separation", 13)
-	direction_controls.mouse_filter = Control.MOUSE_FILTER_STOP
 	root_column.add_child(direction_controls)
 	var pad := GridContainer.new()
 	pad.columns = 3
@@ -202,77 +297,97 @@ func _build_ui() -> void:
 	_add_direction_button(pad, "▼", Vector2i(0, 1))
 	_add_pad_gap(pad)
 	var interact_button := _add_button(direction_controls, "調べる\n決定", _interact)
-	interact_button.custom_minimum_size = Vector2(112, 124)
-	interact_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	interact_button.add_theme_font_size_override("font_size", 21)
-	battle_panel = VBoxContainer.new()
-	root_column.add_child(battle_panel)
-	battle_visual = HBoxContainer.new()
-	battle_visual.alignment = BoxContainer.ALIGNMENT_CENTER
-	battle_panel.add_child(battle_visual)
-	battle_enemy_sprite = _battle_portrait("slime")
-	battle_visual.add_child(battle_enemy_sprite)
-	var separator := Label.new()
-	separator.text = "   VS   "
-	battle_visual.add_child(separator)
-	battle_party_visual = VBoxContainer.new()
-	battle_visual.add_child(battle_party_visual)
-	battle_status = Label.new()
-	battle_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	battle_panel.add_child(battle_status)
-	battle_commands = HBoxContainer.new()
-	battle_panel.add_child(battle_commands)
-	var attack_button := _add_button(battle_commands, "攻撃", func(): _choose_battle("attack"))
-	var skill_button := _add_button(battle_commands, "技", func(): _choose_battle("skill"))
-	var guard_button := _add_button(battle_commands, "防御", func(): _choose_battle("guard"))
-	for combat_button in [attack_button, skill_button, guard_button]:
-		combat_button.custom_minimum_size = Vector2(130, 76)
+	interact_button.custom_minimum_size = Vector2(119, 140)
+	interact_button.add_theme_font_size_override("font_size", 20)
+	_style_button(interact_button, true)
+
+	combat_controls = HBoxContainer.new()
+	combat_controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	combat_controls.add_theme_constant_override("separation", 7)
+	root_column.add_child(combat_controls)
+	battle_commands = combat_controls
+	for entry in [["攻撃", "attack"], ["技", "skill"], ["防御", "guard"]]:
+		var command: String = str(entry[1])
+		var combat_button := _add_button(combat_controls, str(entry[0]), func(): _choose_battle(command))
+		combat_button.custom_minimum_size = Vector2(145, 85)
 		combat_button.add_theme_font_size_override("font_size", 21)
-	var management := HBoxContainer.new()
-	management.alignment = BoxContainer.ALIGNMENT_CENTER
-	root_column.add_child(management)
+		_style_button(combat_button, true)
+
+	management_panel = HBoxContainer.new()
+	management_panel.alignment = BoxContainer.ALIGNMENT_CENTER
+	management_panel.add_theme_constant_override("separation", 6)
+	root_column.add_child(management_panel)
 	for entry in [["編成", Callable(self, "_auto_party")], ["セーブ", Callable(self, "_save")], ["ロード", Callable(self, "_load")], ["周回", Callable(self, "_next_loop")]]:
-		var manage_button := _add_button(management, str(entry[0]), entry[1])
-		manage_button.custom_minimum_size = Vector2(112, 66)
-		manage_button.add_theme_font_size_override("font_size", 17)
+		var manage_button := _add_button(management_panel, str(entry[0]), entry[1])
+		manage_button.custom_minimum_size = Vector2(115, 64)
+		manage_button.add_theme_font_size_override("font_size", 18)
+		_style_button(manage_button)
+	management_panel.visible = false
+
 	battle_panel.visible = false
+	combat_controls.visible = false
+	get_viewport().size_changed.connect(_layout_ui)
+	_layout_ui()
 
-func _add_pad_gap(parent: GridContainer) -> void:
-	var gap := Control.new()
-	gap.custom_minimum_size = Vector2(94, 82)
-	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	parent.add_child(gap)
-
-func _add_direction_button(parent: GridContainer, text_value: String, vector: Vector2i) -> Button:
-	var button := Button.new()
-	button.text = text_value
-	button.custom_minimum_size = Vector2(94, 82)
-	button.focus_mode = Control.FOCUS_NONE
-	button.add_theme_font_size_override("font_size", 32)
-	button.button_down.connect(func(): _begin_hold(vector))
-	button.button_up.connect(_end_hold)
-	parent.add_child(button)
-	return button
-
-func _begin_hold(vector: Vector2i) -> void:
-	held_direction = vector
-	repeat_clock = FIRST_REPEAT_DELAY
-	_walk(vector.x, vector.y)
-
-func _end_hold() -> void:
-	held_direction = Vector2i.ZERO
-	repeat_clock = 0.0
-
-func _process(delta: float) -> void:
-	if held_direction == Vector2i.ZERO:
+func _layout_ui() -> void:
+	if root_column == null:
 		return
-	if battle_active or not game.state.get("ending", "").is_empty():
-		_end_hold()
+	var screen: Vector2 = get_viewport_rect().size
+	var w: float = screen.x
+	var h: float = screen.y
+	var margin: float = 12.0
+	var header_h: float = clampf(h * 0.075, 65, 78)
+	var map_h: float = clampf(h * 0.37, 230, 340)
+	var dialogue_h: float = clampf(h * 0.085, 65, 85)
+	var actions_h: float = clampf(h * 0.095, 68, 90)
+	var bottom_h: float = h - header_h - map_h - dialogue_h - actions_h - 50.0
+	# Compact screen fallback: shrink the map before shrinking controls.
+	if bottom_h < 214.0:
+		map_h = maxf(170.0, map_h - (214.0 - bottom_h))
+		bottom_h = h - header_h - map_h - dialogue_h - actions_h - 50.0
+	hud_panel.position = Vector2(margin, 5)
+	hud_panel.size = Vector2(w - margin * 2.0, header_h)
+	menu_button.position = Vector2(hud_panel.size.x - 99.0, 13)
+	map_frame.position = Vector2(margin, header_h + 11)
+	map_frame.size = Vector2(w - margin * 2.0, map_h)
+	battle_panel.position = map_frame.position + Vector2(14, 20)
+	battle_panel.size = map_frame.size - Vector2(28, 40)
+	cell_size = mini(46, int((map_frame.size.x - 22.0) / 10.0), int((map_frame.size.y - 20.0) / 7.0))
+	description_label.position = Vector2(margin + 3, map_frame.position.y + map_h + 3)
+	description_label.size = Vector2(w - margin * 2.0, 21)
+	dialogue_panel.position = Vector2(margin, description_label.position.y + 22)
+	dialogue_panel.size = Vector2(w - margin * 2.0, dialogue_h)
+	action_scroll.position = Vector2(margin, dialogue_panel.position.y + dialogue_h + 5)
+	action_scroll.size = Vector2(w - margin * 2.0, actions_h)
+	var control_y: float = action_scroll.position.y + actions_h + 5
+	var available: float = maxf(170.0, h - control_y - 9)
+	var pad_h: float = clampf((available - 10) / 3.0, 55, 81)
+	var pad_w: float = clampf((w - 160) / 3.0, 72, 105)
+	button_size = Vector2(pad_w, pad_h)
+	var pad: GridContainer = direction_controls.get_child(0)
+	for child in pad.get_children():
+		child.custom_minimum_size = button_size
+	var interact: Button = direction_controls.get_child(1)
+	interact.custom_minimum_size = Vector2(clampf(w * 0.22, 90, 125), pad_h * 1.7)
+	direction_controls.position = Vector2(margin, control_y)
+	direction_controls.size = Vector2(w - margin * 2.0, available)
+	combat_controls.position = Vector2(margin, control_y + 15)
+	combat_controls.size = Vector2(w - margin * 2.0, 95)
+	for child in combat_controls.get_children():
+		child.custom_minimum_size = Vector2((w - 42) / 3.0, 84)
+	management_panel.position = Vector2(margin, header_h + 13)
+	management_panel.size = Vector2(w - margin * 2.0, 74)
+	for child in management_panel.get_children():
+		child.custom_minimum_size = Vector2((w - 48) / 4.0, 63)
+	if map_grid.get_child_count() > 0:
+		_draw_map()
+
+func _toggle_menu() -> void:
+	if battle_active:
 		return
-	repeat_clock -= delta
-	if repeat_clock <= 0.0:
-		_walk(held_direction.x, held_direction.y)
-		repeat_clock += REPEAT_INTERVAL
+	management_panel.visible = not management_panel.visible
+	menu_button.text = "閉じる" if management_panel.visible else "メニュー"
+
 
 func _battle_portrait(image_id: String) -> TextureRect:
 	var portrait := TextureRect.new()
@@ -286,6 +401,7 @@ func _battle_portrait(image_id: String) -> TextureRect:
 func _add_button(parent: Node, title: String, callback: Callable) -> Button:
 	var b := Button.new()
 	b.text = title
+	_style_button(b)
 	b.pressed.connect(callback)
 	b.custom_minimum_size.y = 60
 	b.add_theme_font_size_override("font_size", 18)
@@ -321,6 +437,9 @@ func _refresh() -> void:
 		_refresh_battle()
 	else:
 		battle_panel.visible = false
+		combat_controls.visible = false
+		map_frame.visible = true
+		action_scroll.visible = true
 		direction_controls.visible = game.state.get("ending", "").is_empty()
 		if not direction_controls.visible:
 			_end_hold()
@@ -335,7 +454,7 @@ func _draw_map() -> void:
 	for y in range(rows.size()):
 		for x in range(str(rows[y]).length()):
 			var cell := TextureRect.new()
-			cell.custom_minimum_size = Vector2(TILE_SIZE, TILE_SIZE)
+			cell.custom_minimum_size = Vector2(cell_size, cell_size)
 			cell.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			cell.stretch_mode = TextureRect.STRETCH_SCALE
 			var symbol: String = str(rows[y]).substr(x, 1)
@@ -389,7 +508,8 @@ func _show_nearby_actions() -> void:
 	var point: Dictionary = _nearby_point()
 	if point.is_empty():
 		last_point_id = ""
-		_add_button(action_list, "辺りを調べる", _interact)
+		var search_button := _add_button(action_list, "辺りを調べる", _interact)
+		search_button.custom_minimum_size.y = 56
 		return
 	var phase: String = str(game.state.get("phase", 1))
 	var dialogue: Dictionary = point.get("dialogue", {})
@@ -400,7 +520,8 @@ func _show_nearby_actions() -> void:
 	for action in point.get("actions", []):
 		var entry: Dictionary = action
 		var label: String = str(entry.get("label", "進む"))
-		_add_button(action_list, label, func(): _perform(entry))
+		var action_button := _add_button(action_list, label, func(): _perform(entry))
+		action_button.custom_minimum_size.y = 56
 
 func _walk(dx: int, dy: int) -> void:
 	if battle_active or not game.state.get("ending", "").is_empty():
@@ -501,7 +622,11 @@ func _begin_battle(enemy_id: String) -> void:
 
 func _refresh_battle() -> void:
 	battle_panel.visible = true
+	combat_controls.visible = true
+	map_frame.visible = false
+	action_scroll.visible = false
 	direction_controls.visible = false
+	management_panel.visible = false
 	_end_hold()
 	battle_status.text = battle.status_text() + "\nコマンド：" + battle.awaiting_name()
 	for button in battle_commands.get_children():
