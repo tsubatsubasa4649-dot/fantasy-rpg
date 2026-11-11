@@ -41,9 +41,9 @@ jobs:
 
       - name: Verify data-driven game and combat
         run: |
-          godot --headless --path godot --script res://tests/test_phase2.gd
-          godot --headless --path godot --script res://tests/test_phase3.gd
-          godot --headless --path godot --script res://tests/test_ui_smoke.gd
+          echo "START PHASE2"; timeout 35s godot --headless --path godot --script res://tests/test_phase2.gd
+          echo "START PHASE3"; timeout 35s godot --headless --path godot --script res://tests/test_phase3.gd
+          echo "START UI"; timeout 35s godot --headless --path godot --script res://tests/test_ui_smoke.gd
 
       - name: Diagnose Web export templates
         run: |
