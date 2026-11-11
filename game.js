@@ -17,9 +17,10 @@ function showStats(){el("place").textContent=maps[state.map].name;el("status").t
 function cell(m,x,y){return m.rows[y]?.[x]??"#";}
 function render(){const m=maps[state.map];ctx.clearRect(0,0,W,H);let ox=Math.max(0,Math.min(m.rows[0].length-10,state.x-4))*TILE,oy=Math.max(0,Math.min(m.rows.length-7,state.y-3))*TILE;for(let y=0;y<m.rows.length;y++)for(let x=0;x<m.rows[0].length;x++){let c=cell(m,x,y),px=x*TILE-ox,py=y*TILE-oy;paint("ground",px,py);if(c==="#")paint("wall",px,py);if(c==="H")paint("house",px,py);if(c==="C")paint("cave",px,py);if(c==="N")paint("npc",px,py);}if(m.boss&&!state.bossDefeated)paint("guardian",m.boss.x*TILE-ox,m.boss.y*TILE-oy);paint("hero",state.x*TILE-ox,state.y*TILE-oy);showStats();}
 function warp(to,x,y){state.map=to;state.x=x;state.y=y;tell(maps[to].name+"に入った。");render();}
-function move(dx,dy){if(enemy)return;let m=maps[state.map],x=state.x+dx,y=state.y+dy;if(x<0||y<0||x>=m.rows[0].length||y>=m.rows.length||cell(m,x,y)==="#")return;
-if(m.npc&&m.npc.x===x&&m.npc.y===y){tell(m.npc.text);return;}
+function move(dx,dy){if(enemy)return;let m=maps[state.map],x=state.x+dx,y=state.y+dy;if(x<0||y<0||x>=m.rows[0].length||y>=m.rows.length)return;
 const exit=m.exits.find(e=>e.x===x&&e.y===y);if(exit){warp(exit.to,exit.tx,exit.ty);return;}
+if(cell(m,x,y)==="#")return;
+if(m.npc&&m.npc.x===x&&m.npc.y===y){tell(m.npc.text);return;}
 state.x=x;state.y=y;state.steps++;
 if(m.boss&&!state.bossDefeated&&m.boss.x===x&&m.boss.y===y){battle(true);return;}
 if(state.map!=="village"&&state.steps%7===0&&Math.random()<0.65){battle(false);return;}
