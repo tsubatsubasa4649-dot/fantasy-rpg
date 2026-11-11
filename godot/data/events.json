@@ -236,6 +236,14 @@
       },
       "effects": [],
       "time_cost": "major_event"
+    },
+    {
+      "id": "extended_expedition",
+      "when": {
+        "always": true
+      },
+      "effects": [],
+      "time_cost": 10
     }
   ]
 }
