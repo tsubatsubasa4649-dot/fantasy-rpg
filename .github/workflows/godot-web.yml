@@ -53,8 +53,13 @@ jobs:
       - name: Export browser build
         run: |
           mkdir -p godot-play
-          godot --headless --verbose --path godot --export-release "Web" "$GITHUB_WORKSPACE/godot-play/index.html"
+          # Fresh asset basename invalidates Safari's cached .pck/.wasm/.js files.
+          godot --headless --verbose --path godot --export-release "Web" "$GITHUB_WORKSPACE/godot-play/fantasy-fix04.html"
+          mv godot-play/fantasy-fix04.html godot-play/index.html
           test -s godot-play/index.html
+          test -s godot-play/fantasy-fix04.pck
+          test -s godot-play/fantasy-fix04.wasm
+          grep -q "fantasy-fix04" godot-play/index.html
 
       - name: Commit browser build without touching original HTML game
         run: |
