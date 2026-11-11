@@ -194,13 +194,13 @@ func _build_ui() -> void:
 	title.size.y = 31
 
 	var build_label := Label.new()
-	build_label.text = BUILD_ID
+	build_label.text = "UI-06"
 	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	build_label.add_theme_font_size_override("font_size", 11)
 	build_label.add_theme_color_override("font_color", Color("#9fb5d8"))
 	hud_panel.add_child(build_label)
 	build_label.position = Vector2(12, 5)
-	build_label.size = Vector2(190, 20)
+	build_label.size = Vector2(72, 20)
 
 	status_label = Label.new()
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
