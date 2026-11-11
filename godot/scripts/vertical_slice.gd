@@ -3,6 +3,7 @@ extends Control
 const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const TILE_SIZE := 44
+const JAPANESE_FONT_PATH := "res://assets/NotoSansJP.ttf"
 var game = GameSession.new()
 var battle = BattleEngine.new()
 var textures: Dictionary = {}
@@ -32,11 +33,50 @@ func _ready() -> void:
 		label.text = "DATA ERROR: " + ", ".join(game.registry.errors)
 		add_child(label)
 		return
+	_apply_japanese_font()
 	_load_art()
 	_build_ui()
 	_restore_location()
 	_show_message("魔王を倒せ。それだけが、思い出せる使命だった。")
 	_refresh()
+
+func _apply_japanese_font() -> void:
+	# Web exports have no reliable Japanese system font fallback.
+	# This open-source OFL font is fetched during CI before import/export.
+	var jp_font := FontFile.new()
+	var result: Error = jp_font.load_dynamic_font(JAPANESE_FONT_PATH)
+	if result != OK:
+		push_error("Japanese font missing: " + JAPANESE_FONT_PATH)
+		return
+	var ui_theme := Theme.new()
+	ui_theme.default_font = jp_font
+	ui_theme.default_font_size = 19
+	theme = ui_theme
+
+func _strip_tile_margin(source: Image) -> Image:
+	# Cropping the white frame baked into generated PNGs; no art is drawn by code.
+	var x0: int = source.get_width()
+	var y0: int = source.get_height()
+	var x1: int = -1
+	var y1: int = -1
+	for y in range(source.get_height()):
+		for x in range(source.get_width()):
+			var c: Color = source.get_pixel(x, y)
+			# White padding was unintentionally included in the source tiles.
+			if c.a < 0.5 or (c.r > 0.90 and c.g > 0.90 and c.b > 0.90):
+				continue
+			x0 = mini(x0, x)
+			y0 = mini(y0, y)
+			x1 = maxi(x1, x)
+			y1 = maxi(y1, y)
+	if x1 < x0 or y1 < y0:
+		return source
+	# One or two edge pixels can remain tinted, so inset the edge slightly.
+	var crop_x: int = mini(x1, x0 + 1)
+	var crop_y: int = mini(y1, y0 + 1)
+	var crop_width: int = maxi(1, x1 - crop_x)
+	var crop_height: int = maxi(1, y1 - crop_y)
+	return source.get_region(Rect2i(crop_x, crop_y, crop_width, crop_height))
 
 func _load_art() -> void:
 	for id in ["ground", "wall", "house", "cave-entrance", "elder", "hero", "slime", "guardian"]:
@@ -48,22 +88,32 @@ func _load_art() -> void:
 		if image.load_png_from_buffer(bytes) != OK:
 			push_warning("Could not load pixel art: " + id)
 			continue
+		if id == "ground" or id == "wall":
+			image = _strip_tile_margin(image)
 		textures[id] = ImageTexture.create_from_image(image)
 
 func _build_ui() -> void:
+	var bg := ColorRect.new()
+	bg.color = Color("#121b2b")
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(bg)
 	root_column = VBoxContainer.new()
 	root_column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root_column.add_theme_constant_override("separation", 5)
+	root_column.add_theme_constant_override("separation", 9)
 	add_child(root_column)
 	var title := Label.new()
 	title.text = "終わりの地図｜Godot 縦切り試作"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 22)
 	root_column.add_child(title)
 	status_label = Label.new()
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	status_label.add_theme_font_size_override("font_size", 16)
 	root_column.add_child(status_label)
 	description_label = Label.new()
 	description_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	description_label.add_theme_font_size_override("font_size", 17)
 	root_column.add_child(description_label)
 	var map_center := CenterContainer.new()
 	root_column.add_child(map_center)
@@ -71,6 +121,7 @@ func _build_ui() -> void:
 	map_grid.columns = 10
 	map_grid.add_theme_constant_override("h_separation", 0)
 	map_grid.add_theme_constant_override("v_separation", 0)
+	map_grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	map_center.add_child(map_grid)
 	message_label = Label.new()
 	message_label.custom_minimum_size = Vector2(0, 45)
