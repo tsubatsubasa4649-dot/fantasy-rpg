@@ -93,7 +93,7 @@ func run_event(event_id: String) -> bool:
 			return false
 	var cost: Variant = event.get("time_cost", 0)
 	var days: int = _cost_days(cost)
-	if days < 0 or int(state.get("day", 0)) + days >= int(registry.world().get("deadline_day", 60)):
+	if days < 0:
 		return false
 	for effect in event.get("effects", []):
 		if effect.has("recruit"):
