@@ -17,6 +17,9 @@ var map_grid: GridContainer
 var action_list: VBoxContainer
 var battle_panel: VBoxContainer
 var battle_status: Label
+var battle_visual: HBoxContainer
+var battle_enemy_sprite: TextureRect
+var battle_party_visual: VBoxContainer
 var battle_commands: HBoxContainer
 var direction_controls: HBoxContainer
 var root_column: VBoxContainer
@@ -84,6 +87,16 @@ func _build_ui() -> void:
 	_add_button(direction_controls, "調べる", _interact)
 	battle_panel = VBoxContainer.new()
 	root_column.add_child(battle_panel)
+	battle_visual = HBoxContainer.new()
+	battle_visual.alignment = BoxContainer.ALIGNMENT_CENTER
+	battle_panel.add_child(battle_visual)
+	battle_enemy_sprite = _battle_portrait("slime")
+	battle_visual.add_child(battle_enemy_sprite)
+	var separator := Label.new()
+	separator.text = "   VS   "
+	battle_visual.add_child(separator)
+	battle_party_visual = VBoxContainer.new()
+	battle_visual.add_child(battle_party_visual)
 	battle_status = Label.new()
 	battle_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	battle_panel.add_child(battle_status)
@@ -100,6 +113,15 @@ func _build_ui() -> void:
 	_add_button(management, "ロード", _load)
 	_add_button(management, "次周回", _next_loop)
 	battle_panel.visible = false
+
+func _battle_portrait(image_id: String) -> TextureRect:
+	var portrait := TextureRect.new()
+	portrait.custom_minimum_size = Vector2(64, 64)
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	if textures.has(image_id):
+		portrait.texture = textures[image_id]
+	return portrait
 
 func _add_button(parent: Node, title: String, callback: Callable) -> Button:
 	var b := Button.new()
@@ -285,6 +307,20 @@ func _begin_battle(enemy_id: String) -> void:
 		return
 	battle_active = true
 	battle_enemy_id = enemy_id
+	if textures.has(str(enemy.get("image", ""))):
+		battle_enemy_sprite.texture = textures[str(enemy.get("image", ""))]
+	for child in battle_party_visual.get_children():
+		battle_party_visual.remove_child(child)
+		child.queue_free()
+	for ally in battle.allies:
+		var avatar_line := HBoxContainer.new()
+		var avatar := _battle_portrait("hero" if str(ally["id"]) == "hero" else "elder")
+		avatar.custom_minimum_size = Vector2(26, 26)
+		avatar_line.add_child(avatar)
+		var caption := Label.new()
+		caption.text = str(ally["name"])
+		avatar_line.add_child(caption)
+		battle_party_visual.add_child(avatar_line)
 	_show_message("戦闘開始！ 最大4人で戦う。")
 	_refresh()
 
