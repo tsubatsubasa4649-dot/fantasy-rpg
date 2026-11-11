@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - "godot/**"
+      - "tools/build_audio.py"
       - ".github/workflows/godot-web.yml"
   workflow_dispatch:
 
@@ -35,6 +36,13 @@ jobs:
           curl -fLsS --retry 3 "https://raw.githubusercontent.com/google/fonts/main/ofl/notosansjp/OFL.txt" -o godot/assets/NotoSansJP-OFL.txt
           test -s godot/assets/NotoSansJP.ttf
           test -s godot/assets/NotoSansJP-OFL.txt
+
+      - name: Compose original Ogg soundtrack
+        run: |
+          python3 tools/build_audio.py
+          test -s godot/audio/field.ogg
+          test -s godot/audio/cave.ogg
+          test -s godot/audio/battle.ogg
 
       - name: Import Godot resources
         run: godot --headless --path godot --import --quit
