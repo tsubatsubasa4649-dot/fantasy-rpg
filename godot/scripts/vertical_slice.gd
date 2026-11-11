@@ -3,7 +3,7 @@ extends Control
 const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG UI-07 / HUD & BATTLE"
+const BUILD_ID := "RPG ART-08 / BATTLE SCALE"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -21,7 +21,7 @@ var battle_panel: VBoxContainer
 var battle_status: Label
 var battle_visual: HBoxContainer
 var battle_enemy_sprite: TextureRect
-var battle_party_visual: VBoxContainer
+var battle_party_visual: GridContainer
 var battle_commands: HBoxContainer
 var direction_controls: HBoxContainer
 var root_column: Control
@@ -41,6 +41,7 @@ var cell_size: int = 44
 var button_size: Vector2 = Vector2(94, 74)
 var last_point_id: String = ""
 var last_phase: int = 0
+var previous_tile_pos: Vector2i = Vector2i(-1, -1)
 var held_direction: Vector2i = Vector2i.ZERO
 var repeat_clock: float = 0.0
 const FIRST_REPEAT_DELAY := 0.22
@@ -132,6 +133,30 @@ func _remove_house_background(source: Image) -> Image:
 		queue.append(pos + Vector2i.DOWN)
 	return img
 
+func _trim_transparent_padding(source: Image) -> Image:
+	# Only crop the alpha channel of already generated sprite art.
+	# No new artwork is produced by code.
+	var left: int = source.get_width()
+	var top: int = source.get_height()
+	var right: int = -1
+	var bottom: int = -1
+	for y in range(source.get_height()):
+		for x in range(source.get_width()):
+			if source.get_pixel(x, y).a < 0.15:
+				continue
+			left = mini(left, x)
+			top = mini(top, y)
+			right = maxi(right, x)
+			bottom = maxi(bottom, y)
+	if right < left:
+		return source
+	var margin: int = 1
+	left = maxi(0, left - margin)
+	top = maxi(0, top - margin)
+	right = mini(source.get_width() - 1, right + margin)
+	bottom = mini(source.get_height() - 1, bottom + margin)
+	return source.get_region(Rect2i(left, top, right - left + 1, bottom - top + 1))
+
 func _load_art() -> void:
 	for id in ["ground", "wall", "house", "cave-entrance", "elder", "hero", "slime", "guardian"]:
 		var path: String = "res://assets/" + id + ".b64"
@@ -146,6 +171,8 @@ func _load_art() -> void:
 			image = _strip_tile_margin(image)
 		elif id == "house":
 			image = _remove_house_background(image)
+		if id in ["hero", "elder", "slime", "guardian", "house", "cave-entrance"]:
+			image = _trim_transparent_padding(image)
 		textures[id] = ImageTexture.create_from_image(image)
 
 func _panel_style(fill: Color, border: Color = Color("#657da8")) -> StyleBoxFlat:
@@ -238,20 +265,23 @@ func _build_ui() -> void:
 	root_column.add_child(battle_panel)
 	battle_visual = HBoxContainer.new()
 	battle_visual.alignment = BoxContainer.ALIGNMENT_CENTER
-	battle_visual.add_theme_constant_override("separation", 32)
+	battle_visual.add_theme_constant_override("separation", 8)
 	battle_panel.add_child(battle_visual)
 	battle_enemy_sprite = _battle_portrait("slime")
-	battle_enemy_sprite.custom_minimum_size = Vector2(148, 155)
+	battle_enemy_sprite.custom_minimum_size = Vector2(124, 160)
 	battle_visual.add_child(battle_enemy_sprite)
 	var separator := Label.new()
 	separator.text = "VS"
-	separator.add_theme_font_size_override("font_size", 23)
+	separator.add_theme_font_size_override("font_size", 15)
 	battle_visual.add_child(separator)
-	battle_party_visual = VBoxContainer.new()
+	battle_party_visual = GridContainer.new()
+	battle_party_visual.columns = 2
+	battle_party_visual.add_theme_constant_override("h_separation", 3)
+	battle_party_visual.add_theme_constant_override("v_separation", 3)
 	battle_visual.add_child(battle_party_visual)
 	battle_status = Label.new()
 	battle_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	battle_status.add_theme_font_size_override("font_size", 19)
+	battle_status.add_theme_font_size_override("font_size", 16)
 	battle_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	battle_panel.add_child(battle_status)
 
@@ -534,6 +564,11 @@ func _draw_map() -> void:
 				if textures.has(sprite_id):
 					sprite.texture = textures[sprite_id]
 				cell.add_child(sprite)
+				if sprite_id == "hero" and tile_pos != previous_tile_pos:
+					sprite.position.y = -3.0
+					var walk_tween := create_tween()
+					walk_tween.tween_property(sprite, "position:y", 0.0, 0.11)
+	previous_tile_pos = tile_pos
 
 func _point_visible(point: Dictionary) -> bool:
 	return game.can(point.get("visible_when", {"always": true}))
@@ -582,6 +617,7 @@ func _walk(dx: int, dy: int) -> void:
 		return
 	if str(rows[goal.y]).substr(goal.x, 1) == "#":
 		return
+	previous_tile_pos = tile_pos
 	tile_pos = goal
 	_refresh()
 
@@ -659,14 +695,20 @@ func _begin_battle(enemy_id: String) -> void:
 		battle_party_visual.remove_child(child)
 		child.queue_free()
 	for ally in battle.allies:
-		var avatar_line := HBoxContainer.new()
-		var avatar := _battle_portrait("hero" if str(ally["id"]) == "hero" else "elder")
-		avatar.custom_minimum_size = Vector2(26, 26)
-		avatar_line.add_child(avatar)
+		var avatar_column := VBoxContainer.new()
+		avatar_column.alignment = BoxContainer.ALIGNMENT_CENTER
+		avatar_column.custom_minimum_size = Vector2(77, 85)
+		var record: Dictionary = game.registry.by_id("characters", str(ally["id"]))
+		var battle_art: String = str(record.get("battle_sprite_id", "hero"))
+		var avatar := _battle_portrait(battle_art)
+		avatar.custom_minimum_size = Vector2(72, 66)
+		avatar_column.add_child(avatar)
 		var caption := Label.new()
 		caption.text = str(ally["name"])
-		avatar_line.add_child(caption)
-		battle_party_visual.add_child(avatar_line)
+		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		caption.add_theme_font_size_override("font_size", 12)
+		avatar_column.add_child(caption)
+		battle_party_visual.add_child(avatar_column)
 	_show_message("戦闘開始！ 最大4人で戦う。")
 	_refresh()
 
@@ -685,10 +727,20 @@ func _refresh_battle() -> void:
 		if button is Button:
 			button.disabled = battle.finished
 
+func _play_attack_feedback() -> void:
+	# Animation acts on already generated sprites, not painted effects.
+	if battle_enemy_sprite == null or not is_instance_valid(battle_enemy_sprite):
+		return
+	battle_enemy_sprite.modulate = Color(1, 0.48, 0.48)
+	var effect := create_tween()
+	effect.tween_property(battle_enemy_sprite, "modulate", Color.WHITE, 0.22)
+
 func _choose_battle(action: String) -> void:
 	if not battle_active:
 		return
 	var result: Dictionary = battle.choose(action)
+	if result.get("resolved", false):
+		_play_attack_feedback()
 	if not result.get("ok", false):
 		return
 	_show_message(str(result.get("text", "")))
