@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "storylines": [
+    {
+      "id": "bridge",
+      "name": "橋の向こう",
+      "stages": [
+        {
+          "id": "start",
+          "when": {
+            "all": [
+              {
+                "recruited": "ch_ricky"
+              },
+              {
+                "recruited": "ch_meri"
+              },
+              {
+                "phase_gte": 2
+              }
+            ]
+          },
+          "event_id": "bridge_investigate"
+        },
+        {
+          "id": "resolution",
+          "when": {
+            "all": [
+              {
+                "storyline_stage_is": [
+                  "bridge",
+                  "start"
+                ]
+              },
+              {
+                "active": "ch_meri"
+              },
+              {
+                "flag_is": [
+                  "bridge_evidence",
+                  true
+                ]
+              }
+            ]
+          },
+          "event_id": "bridge_resolution"
+        }
+      ]
+    }
+  ]
+}
