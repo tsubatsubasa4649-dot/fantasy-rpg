@@ -22,6 +22,12 @@ func _run() -> void:
 	root.add_child(ui)
 	check(ui.game.registry.records("maps").size() == 2, "Scene initializes data registry")
 	check(ui.textures.size() == 8, "All eight generated PNG images decode")
+	check(ui.theme != null and ui.theme.default_font != null, "Embedded Japanese font is loaded")
+	if ui.theme != null and ui.theme.default_font != null:
+		check(ui.theme.default_font.has_char(0x59CB) and ui.theme.default_font.has_char(0x307E), "Japanese Kanji and Hiragana glyphs are present")
+	if ui.textures.has("ground"):
+		var ground: Texture2D = ui.textures["ground"]
+		check(ground.get_width() < 32 and ground.get_height() < 32, "Ground padding was cropped away")
 	check(ui.map_grid.get_child_count() == 70, "Map builds 10x7 visible tiles")
 	check(ui.description_label.text.contains("草原"), "Field visible on startup")
 	ui._walk(1, 0)
