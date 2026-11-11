@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "items": [
+    {
+      "id": "rusted_key",
+      "name": "錆びた鍵",
+      "carryover_allowed": true
+    },
+    {
+      "id": "healing_herb",
+      "name": "薬草",
+      "carryover_allowed": false
+    },
+    {
+      "id": "boat_model",
+      "name": "小舟の模型",
+      "carryover_allowed": true
+    }
+  ]
+}
