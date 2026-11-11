@@ -43,6 +43,10 @@ jobs:
           test -s godot/audio/field.wav
           test -s godot/audio/cave.wav
           test -s godot/audio/battle.wav
+          test -s godot/audio/step.wav
+          test -s godot/audio/confirm.wav
+          test -s godot/audio/attack.wav
+          test -s godot/audio/hit.wav
 
       - name: Import Godot resources
         run: godot --headless --path godot --import --quit
@@ -62,12 +66,12 @@ jobs:
         run: |
           mkdir -p godot-play
           # Fresh asset basename invalidates Safari's cached .pck/.wasm/.js files.
-          godot --headless --verbose --path godot --export-release "Web" "$GITHUB_WORKSPACE/godot-play/fantasy-art10.html"
-          mv godot-play/fantasy-art10.html godot-play/index.html
+          godot --headless --verbose --path godot --export-release "Web" "$GITHUB_WORKSPACE/godot-play/fantasy-ux11.html"
+          mv godot-play/fantasy-ux11.html godot-play/index.html
           test -s godot-play/index.html
-          test -s godot-play/fantasy-art10.pck
-          test -s godot-play/fantasy-art10.wasm
-          grep -q "fantasy-art10" godot-play/index.html
+          test -s godot-play/fantasy-ux11.pck
+          test -s godot-play/fantasy-ux11.wasm
+          grep -q "fantasy-ux11" godot-play/index.html
 
       - name: Commit browser build without touching original HTML game
         run: |
