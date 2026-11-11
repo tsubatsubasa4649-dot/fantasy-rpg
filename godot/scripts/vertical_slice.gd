@@ -24,6 +24,7 @@ var battle_commands: HBoxContainer
 var direction_controls: HBoxContainer
 var root_column: VBoxContainer
 var last_point_id: String = ""
+var last_phase: int = 0
 
 func _ready() -> void:
 	if not game.initialize():
@@ -133,6 +134,12 @@ func _add_button(parent: Node, title: String, callback: Callable) -> Button:
 func _map() -> Dictionary:
 	return game.registry.by_id("maps", location_id)
 
+func _current_rows() -> Array:
+	var data: Dictionary = _map()
+	var phase_rows: Dictionary = data.get("phase_rows", {})
+	var key: String = str(game.state.get("phase", 1))
+	return phase_rows.get(key, data.get("rows", []))
+
 func _current_phase_name() -> String:
 	for phase in game.registry.world().get("phases", []):
 		if int(phase.get("id", 0)) == int(game.state.get("phase", 1)):
@@ -161,7 +168,7 @@ func _draw_map() -> void:
 		map_grid.remove_child(item)
 		item.queue_free()
 	var map_data: Dictionary = _map()
-	var rows: Array = map_data.get("rows", [])
+	var rows: Array = _current_rows()
 	for y in range(rows.size()):
 		for x in range(str(rows[y]).length()):
 			var cell := TextureRect.new()
@@ -216,12 +223,16 @@ func _show_nearby_actions() -> void:
 		node.queue_free()
 	var point: Dictionary = _nearby_point()
 	if point.is_empty():
+		last_point_id = ""
 		_add_button(action_list, "辺りを調べる", _interact)
 		return
 	last_point_id = str(point.get("id"))
 	var phase: String = str(game.state.get("phase", 1))
 	var dialogue: Dictionary = point.get("dialogue", {})
-	_show_message(str(point.get("label", "")) + "「" + str(dialogue.get(phase, "……")) + "」")
+	if last_point_id != str(point.get("id")) or last_phase != int(game.state.get("phase", 1)):
+		_show_message(str(point.get("label", "")) + "「" + str(dialogue.get(phase, "……")) + "」")
+	last_point_id = str(point.get("id"))
+	last_phase = int(game.state.get("phase", 1))
 	for action in point.get("actions", []):
 		var entry: Dictionary = action
 		var label: String = str(entry.get("label", "進む"))
@@ -231,7 +242,7 @@ func _walk(dx: int, dy: int) -> void:
 	if battle_active or not game.state.get("ending", "").is_empty():
 		return
 	var goal := position + Vector2i(dx, dy)
-	var rows: Array = _map().get("rows", [])
+	var rows: Array = _current_rows()
 	if goal.y < 0 or goal.y >= rows.size() or goal.x < 0 or goal.x >= str(rows[goal.y]).length():
 		return
 	if str(rows[goal.y]).substr(goal.x, 1) == "#":
