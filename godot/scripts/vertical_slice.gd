@@ -42,6 +42,7 @@ var button_size: Vector2 = Vector2(94, 74)
 var last_point_id: String = ""
 var last_phase: int = 0
 var previous_tile_pos: Vector2i = Vector2i(-1, -1)
+var facing: Vector2i = Vector2i.DOWN
 var music_player: AudioStreamPlayer
 var music_on: bool = true
 var current_music_id: String = ""
@@ -631,7 +632,9 @@ func _draw_map() -> void:
 				if textures.has(sprite_id):
 					sprite.texture = textures[sprite_id]
 				cell.add_child(sprite)
-				if sprite_id == "hero" and tile_pos != previous_tile_pos:
+				if sprite_id in ["hero", "hero_field"]:
+					sprite.flip_h = facing.x > 0
+				if sprite_id in ["hero", "hero_field"] and tile_pos != previous_tile_pos:
 					sprite.position.y = -3.0
 					var walk_tween := create_tween()
 					walk_tween.tween_property(sprite, "position:y", 0.0, 0.11)
@@ -678,7 +681,8 @@ func _show_nearby_actions() -> void:
 func _walk(dx: int, dy: int) -> void:
 	if battle_active or not game.state.get("ending", "").is_empty():
 		return
-	var goal := tile_pos + Vector2i(dx, dy)
+	facing = Vector2i(dx, dy)
+	var goal := tile_pos + facing
 	var rows: Array = _current_rows()
 	if goal.y < 0 or goal.y >= rows.size() or goal.x < 0 or goal.x >= str(rows[goal.y]).length():
 		return
