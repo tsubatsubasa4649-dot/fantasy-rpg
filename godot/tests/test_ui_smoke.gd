@@ -37,6 +37,7 @@ func _run() -> void:
 	check(ui.description_label.text.contains("草原"), "Field visible on startup")
 	var walk_start: Vector2 = ui.hero_overlay.position
 	ui._walk(1, 0)
+	check(ui.walk_sprite_frame == 0, "First step pose appears immediately")
 	check(ui.tile_pos == Vector2i(2, 4), "Mobile movement updates logical tile")
 	check(ui.hero_overlay.position.distance_to(walk_start) < 1.0, "Hero does not teleport to target on first input")
 	await create_timer(0.17).timeout
@@ -44,9 +45,21 @@ func _run() -> void:
 	check(halfway > 2.0 and halfway < float(ui.cell_size) - 2.0, "Hero smoothly moves between neighboring tile coordinates")
 	check(ui.walking, "Movement remains animated after logical grid step")
 	check(ui.hero_overlay != null and ui.hero_overlay.texture != null, "Hero is persistent independent of terrain tiles")
+	check(ui.walk_textures.size() == 4, "Walking animation has all four directions")
+	for direction in range(4):
+		check(ui.walk_textures[direction].size() == 3, "Direction " + str(direction) + " has idle and two steps")
+		for frame in range(3):
+			var sprite: AtlasTexture = ui.walk_textures[direction][frame]
+			check(sprite.region == Rect2(frame * 48, direction * 56, 48, 56), "Frame atlas region is correct")
+	check(ui._face_row(Vector2i(0, 1)) == 0, "Down uses front sprite row")
+	check(ui._face_row(Vector2i(-1, 0)) == 1, "Left uses side sprite row")
+	check(ui._face_row(Vector2i(1, 0)) == 2, "Right uses opposite side sprite row")
+	check(ui._face_row(Vector2i(0, -1)) == 3, "Up uses back sprite row")
+	check(ui.walk_sprite_direction == 2, "Right walk selects right-facing character artwork")
 	check(not ui.action_scroll.visible, "Choices stay hidden until explicit interaction")
-	await create_timer(0.48).timeout
+	await create_timer(0.37).timeout
 	check(not ui.walking, "Smooth movement finishes after tween")
+	check(ui.walk_sprite_frame == 1, "Idle pose restored after walking")
 	ui._interact()
 	check(ui.action_scroll.visible, "Talking reveals choices directly below dialogue")
 	check(ui.action_list.get_child_count() >= 1, "Talk options appear within choice panel")
