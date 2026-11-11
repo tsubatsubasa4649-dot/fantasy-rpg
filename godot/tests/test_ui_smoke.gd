@@ -70,6 +70,13 @@ func _run() -> void:
 	check(not ui.direction_controls.visible and ui.combat_controls.visible, "Battle switches controls instead of stacking layouts")
 	check(not ui.map_frame.visible, "Battle replaces the map, not added below it")
 	check(ui.battle.allies.size() == 1, "Unrecruited run uses hero")
+	check(ui.battle_party_visual.columns == 2, "Battle allies use two-column formation")
+	check(ui.battle_party_visual.get_child_count() == 1, "Hero portrait exists")
+	var hero_column: VBoxContainer = ui.battle_party_visual.get_child(0)
+	var hero_portrait: TextureRect = hero_column.get_child(0)
+	check(hero_portrait.custom_minimum_size.x >= 70, "Battle human actor is not tiny beside slime")
+	check(ui.battle_enemy_sprite.custom_minimum_size.x <= 130, "Slime no longer dominates battle width")
+	check(ui.game.registry.by_id("characters", "ch_meri").has("battle_sprite_id"), "Character battle artwork is data-driven")
 	ui._choose_battle("skill")
 	check(ui.battle.round_number == 2, "One turn command resolves")
 	ui.battle_active = false
