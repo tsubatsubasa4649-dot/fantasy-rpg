@@ -29,5 +29,12 @@
   "party": {
     "max_size": 4,
     "hero_id": "hero"
-  }
+  },
+  "initial_flags": {
+    "village_helped": false,
+    "forest_clue": false,
+    "refugees_saved": false
+  },
+  "deadline_ending_id": "ED_END",
+  "initial_day": 0
 }
