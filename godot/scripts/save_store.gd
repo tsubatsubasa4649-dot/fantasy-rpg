@@ -22,11 +22,20 @@ func save_slot(slot: int, state: Dictionary, meta: Dictionary) -> bool:
 	file.store_string(JSON.stringify(payload, "\t"))
 	file.flush()
 	file.close()
-	if FileAccess.file_exists(destination):
-		var removal_error := DirAccess.remove_absolute(destination)
-		if removal_error != OK:
+	var backup := destination + ".bak"
+	if FileAccess.file_exists(backup):
+		if DirAccess.remove_absolute(backup) != OK:
 			return false
-	return DirAccess.rename_absolute(temporary, destination) == OK
+	if FileAccess.file_exists(destination):
+		if DirAccess.rename_absolute(destination, backup) != OK:
+			return false
+	if DirAccess.rename_absolute(temporary, destination) != OK:
+		if FileAccess.file_exists(backup):
+			DirAccess.rename_absolute(backup, destination)
+		return false
+	if FileAccess.file_exists(backup):
+		DirAccess.remove_absolute(backup)
+	return true
 
 func load_slot(slot: int) -> Dictionary:
 	if slot < 1 or slot > MAX_SLOTS:
