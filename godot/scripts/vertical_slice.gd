@@ -246,12 +246,12 @@ func _play_music(track_id: String) -> void:
 	music_player.stop()
 	if not music_on:
 		return
-	var track: AudioStream = load("res://audio/" + track_id + ".ogg") as AudioStream
+	var track: AudioStream = load("res://audio/" + track_id + ".wav") as AudioStream
 	if track == null:
 		push_warning("Missing original BGM: " + track_id)
 		return
-	if track is AudioStreamOggVorbis:
-		track.loop = true
+	if track is AudioStreamWAV:
+		track.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	music_player.stream = track
 	music_player.play()
 
