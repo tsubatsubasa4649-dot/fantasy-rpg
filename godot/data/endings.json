@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "endings": [
+    {
+      "id": "ED_BRIDGE",
+      "name": "橋の向こう",
+      "when": {
+        "all": [
+          {
+            "flag_is": [
+              "bridge_reconciled",
+              true
+            ]
+          },
+          {
+            "storyline_stage_is": [
+              "bridge",
+              "resolution"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ED_DARKLORD",
+      "name": "魔王討伐",
+      "when": {
+        "flag_is": [
+          "darklord_defeated",
+          true
+        ]
+      }
+    }
+  ]
+}
