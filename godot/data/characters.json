@@ -9,8 +9,8 @@
       "recruit": {
         "always": true
       },
-      "field_sprite_id": "hero",
-      "battle_sprite_id": "hero",
+      "field_sprite_id": "hero_field",
+      "battle_sprite_id": "hero_battle",
       "sprite_profile_id": "hero"
     },
     {
@@ -35,8 +35,8 @@
       "relations": [
         "ch_meri"
       ],
-      "field_sprite_id": "elder",
-      "battle_sprite_id": "elder",
+      "field_sprite_id": "ricky_field",
+      "battle_sprite_id": "ricky_battle",
       "sprite_profile_id": "ch_ricky"
     },
     {
@@ -61,8 +61,8 @@
       "relations": [
         "ch_ricky"
       ],
-      "field_sprite_id": "elder",
-      "battle_sprite_id": "elder",
+      "field_sprite_id": "meri_field",
+      "battle_sprite_id": "meri_battle",
       "sprite_profile_id": "ch_meri"
     },
     {
@@ -87,8 +87,8 @@
       "relations": [
         "ch_ricky"
       ],
-      "field_sprite_id": "elder",
-      "battle_sprite_id": "elder",
+      "field_sprite_id": "goro_field",
+      "battle_sprite_id": "goro_battle",
       "sprite_profile_id": "ch_goro"
     }
   ]
