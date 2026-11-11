@@ -1,6 +1,6 @@
 # フェーズ3 — Godot 4 縦切りプロトタイプ
 
-**実装状態：ソース実装済み／自動ビルド・Godot実行テスト実行中（成功確認前）**
+**実装状態：Godot 4.3でフェーズ2・3・UIスモークテスト全件成功／Web書き出しとGitHubへの公開ファイル配置も成功。iPhone Safari実機プレイは未確認。**
 
 既存のルート直下 `index.html` は従来のブラウザ試作品として維持。
 本命のGodot 4版は `godot/` 以下の別プロジェクト。
@@ -37,7 +37,12 @@
 ## 予定URL（ビルド成功後）
 <https://tsubatsubasa4649-dot.github.io/fantasy-rpg/godot-play/>
 
-**注意**：URLでの正常動作はCIの成功とPages反映を確認するまで保証できない。WebGL2対応ブラウザが必要。iPhone Safariの実機動作も未検証。
+**注意**：CIのGodot実行テストとWeb書き出しは成功。GitHub Pagesへの公開はデプロイ処理が完了すれば有効。iPhone Safariの表示・操作・音声はユーザー実機で未確認。
+
+## CI検証ログ
+- GitHub ActionsでGodot 4.3を起動し、フェーズ2と3の条件・セーブ・戦闘テストをすべて合格。
+- UIスモークテストも失敗0件：実シーン起動、生成PNG8点読み込み、10×7マップ描画準備、移動、戦闘パネル表示、1ターン実行。
+- Webエクスポート成功、\`godot-play/index.html\`・\`index.wasm\`・\`index.pck\`ほかを書き出し。
 
 ## フェーズ3でまだ作らないもの
 - 20人完全実装（データ構造は拡張可能、サンプル3人のみ）
