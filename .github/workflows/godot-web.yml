@@ -37,6 +37,11 @@ jobs:
           test -s godot/assets/NotoSansJP.ttf
           test -s godot/assets/NotoSansJP-OFL.txt
 
+      - name: Install audio encoder
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+
       - name: Compose original Ogg soundtrack
         run: |
           python3 tools/build_audio.py
