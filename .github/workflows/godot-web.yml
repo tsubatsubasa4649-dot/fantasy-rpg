@@ -37,10 +37,15 @@ jobs:
           godot --headless --path godot --script res://tests/test_phase2.gd
           godot --headless --path godot --script res://tests/test_phase3.gd
 
+      - name: Diagnose Web export templates
+        run: |
+          find "$HOME/.local/share/godot/export_templates" -maxdepth 2 -type f -name "web*.zip" -print || true
+          grep -E "^(html/export_icon|progressive_web_app/enabled|variant/thread_support)=" godot/export_presets.cfg
+
       - name: Export browser build
         run: |
           mkdir -p godot-play
-          godot --headless --path godot --export-release "Web" "$GITHUB_WORKSPACE/godot-play/index.html"
+          godot --headless --verbose --path godot --export-release "Web" "$GITHUB_WORKSPACE/godot-play/index.html"
           test -s godot-play/index.html
 
       - name: Commit browser build without touching original HTML game
