@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "phases": [
+    {
+      "id": 1,
+      "name": "前兆期",
+      "from_day": 0
+    },
+    {
+      "id": 2,
+      "name": "崩壊期",
+      "from_day": 20
+    },
+    {
+      "id": 3,
+      "name": "終末期",
+      "from_day": 45
+    }
+  ],
+  "deadline_day": 60,
+  "time_costs": {
+    "rest": 1,
+    "region_travel": 2,
+    "major_event": 3,
+    "step": 0,
+    "talk": 0,
+    "normal_battle": 0
+  },
+  "party": {
+    "max_size": 4,
+    "hero_id": "hero"
+  }
+}
