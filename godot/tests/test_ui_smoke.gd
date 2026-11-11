@@ -92,6 +92,21 @@ func _run() -> void:
 	ui.battle_active = false
 	ui._refresh()
 	check(ui.direction_controls.visible, "Controls recover after battle")
+	# Full team setup: four distinct party characters must occupy the battle grid.
+	ui.game.run_event("help_village")
+	ui.game.run_event("recruit_ricky")
+	ui.game.run_event("find_forest_clue")
+	ui.game.run_event("recruit_meri")
+	ui.game.advance_days(20)
+	ui.game.run_event("save_refugees")
+	ui.game.run_event("recruit_goro")
+	check(ui.game.set_party(["ch_ricky", "ch_meri", "ch_goro"]), "Can form a four-person party")
+	ui._begin_battle("slime")
+	check(ui.battle_party_visual.get_child_count() == 4, "Four unique actor portraits appear in battle formation")
+	check(ui.battle_party_visual.columns == 2, "Four characters use compact 2x2 battle layout")
+	for ally in ui.battle.allies:
+		var char: Dictionary = ui.game.registry.by_id("characters", str(ally["id"]))
+		check(ui.textures.has(str(char.get("battle_sprite_id", ""))), "Battle texture exists for " + str(ally["id"]))
 	root.remove_child(ui)
 	ui.queue_free()
 	print("PHASE 3 UI SMOKE FAILURES: ", failures)
