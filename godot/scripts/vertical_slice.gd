@@ -48,6 +48,7 @@ var music_on: bool = true
 var current_music_id: String = ""
 var music_toggle_button: Button
 var sound_player: AudioStreamPlayer
+var hit_player: AudioStreamPlayer
 var audio_unlocked: bool = false
 var pending_choices: bool = false
 var walking: bool = false
@@ -242,6 +243,9 @@ func _setup_music() -> void:
 	sound_player = AudioStreamPlayer.new()
 	sound_player.volume_db = -4.0
 	add_child(sound_player)
+	hit_player = AudioStreamPlayer.new()
+	hit_player.volume_db = -3.0
+	add_child(hit_player)
 
 func _unlock_audio() -> void:
 	if audio_unlocked:
@@ -257,8 +261,9 @@ func _play_sfx(effect_id: String) -> void:
 	var effect: AudioStream = load("res://audio/" + effect_id + ".wav") as AudioStream
 	if effect == null:
 		return
-	sound_player.stream = effect
-	sound_player.play()
+	var player: AudioStreamPlayer = hit_player if effect_id == "hit" else sound_player
+	player.stream = effect
+	player.play()
 
 func _play_music_for_location() -> void:
 	_play_music("cave" if location_id == "cave" else "field")
@@ -358,7 +363,7 @@ func _build_ui() -> void:
 	hero_overlay.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	hero_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hero_overlay.texture = textures.get("hero_field", textures.get("hero"))
-	map_center.add_child(hero_overlay)
+	map_frame.add_child(hero_overlay)
 
 	battle_panel = VBoxContainer.new()
 	battle_panel.add_theme_constant_override("separation", 22)
@@ -530,6 +535,7 @@ func _layout_ui() -> void:
 		call_deferred("_sync_hero_overlay")
 
 func _toggle_menu() -> void:
+	_unlock_audio()
 	if battle_active:
 		return
 	management_panel.visible = not management_panel.visible
@@ -637,8 +643,8 @@ func _hero_cell_position(point: Vector2i) -> Vector2:
 	var index: int = point.y * width + point.x
 	if index >= 0 and index < map_grid.get_child_count():
 		var cell: Control = map_grid.get_child(index)
-		return map_grid.position + cell.position
-	return map_grid.position + Vector2(point.x, point.y) * float(cell_size)
+		return map_center.position + map_grid.position + cell.position
+	return map_center.position + map_grid.position + Vector2(point.x, point.y) * float(cell_size)
 
 func _sync_hero_overlay() -> void:
 	if hero_overlay == null or map_grid.get_child_count() == 0 or walking:
