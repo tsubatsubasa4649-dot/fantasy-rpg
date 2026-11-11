@@ -123,8 +123,10 @@ func advance_days(days: int) -> bool:
 	return true
 
 func _cost_days(value: Variant) -> int:
-	if typeof(value) == TYPE_INT:
-		return value
+	if typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT:
+		if float(value) >= 0.0 and floorf(float(value)) == float(value):
+			return int(value)
+		return -1
 	if typeof(value) == TYPE_STRING:
 		return int(registry.world().get("time_costs", {}).get(value, -1))
 	return -1
@@ -182,7 +184,7 @@ func _valid_loaded_state(candidate: Dictionary) -> bool:
 		return false
 	if typeof(candidate.get("flags")) != TYPE_DICTIONARY or typeof(candidate.get("storylines")) != TYPE_DICTIONARY:
 		return false
-	if typeof(candidate.get("day")) != TYPE_INT or candidate["day"] < 0:
+	if not (typeof(candidate.get("day")) in [TYPE_INT, TYPE_FLOAT]) or candidate["day"] < 0:
 		return false
 	if candidate["party"].is_empty() or candidate["party"][0] != str(registry.world().get("party", {}).get("hero_id", "hero")) or candidate["party"].size() > int(registry.world().get("party", {}).get("max_size", 4)):
 		return false
