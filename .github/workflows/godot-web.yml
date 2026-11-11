@@ -54,12 +54,12 @@ jobs:
         run: |
           mkdir -p godot-play
           # Fresh asset basename invalidates Safari's cached .pck/.wasm/.js files.
-          godot --headless --verbose --path godot --export-release "Web" "$GITHUB_WORKSPACE/godot-play/fantasy-ui06.html"
-          mv godot-play/fantasy-ui06.html godot-play/index.html
+          godot --headless --verbose --path godot --export-release "Web" "$GITHUB_WORKSPACE/godot-play/fantasy-ui07.html"
+          mv godot-play/fantasy-ui07.html godot-play/index.html
           test -s godot-play/index.html
-          test -s godot-play/fantasy-ui06.pck
-          test -s godot-play/fantasy-ui06.wasm
-          grep -q "fantasy-ui06" godot-play/index.html
+          test -s godot-play/fantasy-ui07.pck
+          test -s godot-play/fantasy-ui07.wasm
+          grep -q "fantasy-ui07" godot-play/index.html
 
       - name: Commit browser build without touching original HTML game
         run: |
