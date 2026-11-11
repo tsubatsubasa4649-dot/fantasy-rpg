@@ -41,11 +41,11 @@ func matches(expr: Variant, state: Dictionary, meta: Dictionary = {}) -> bool:
 		"phase_gte":
 			return state.get("phase", 1) >= value if typeof(value) in [TYPE_INT, TYPE_FLOAT] else false
 		"phase_lte":
-			return state.get("phase", 1) <= value if typeof(value) == TYPE_INT else false
+			return state.get("phase", 1) <= value if typeof(value) in [TYPE_INT, TYPE_FLOAT] else false
 		"day_gte":
-			return state.get("day", 0) >= value if typeof(value) == TYPE_INT else false
+			return state.get("day", 0) >= value if typeof(value) in [TYPE_INT, TYPE_FLOAT] else false
 		"day_lte":
-			return state.get("day", 0) <= value if typeof(value) == TYPE_INT else false
+			return state.get("day", 0) <= value if typeof(value) in [TYPE_INT, TYPE_FLOAT] else false
 		"storyline_stage_is":
 			return _pair_matches(value, state.get("storylines", {}))
 		"ending_seen":
@@ -53,7 +53,7 @@ func matches(expr: Variant, state: Dictionary, meta: Dictionary = {}) -> bool:
 		"achievement_unlocked":
 			return str(value) in meta.get("achievements", [])
 		"loop_count_gte":
-			return meta.get("loop_count", 0) >= value if typeof(value) == TYPE_INT else false
+			return meta.get("loop_count", 0) >= value if typeof(value) in [TYPE_INT, TYPE_FLOAT] else false
 		"carryover_has":
 			return str(value) in state.get("items", [])
 		_:
