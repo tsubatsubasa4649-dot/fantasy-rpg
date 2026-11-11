@@ -158,3 +158,30 @@ if __name__ == "__main__":
     render("battle",164,["Em","C","D","Em","C","D","Em","B"],repeat_to_8bars(battle),"battle")
     render("field",96,["Em","C","G","D","C","Am","D","Em"],repeat_to_8bars(field),"field")
     render("cave",80,["Em","C","D","B","Em","F","D","B"],repeat_to_8bars(cave),"cave")
+
+def render_sfx(name, notes, duration=0.16, noise=0.0):
+    """Short original mono WAV effects, deliberately separate from music tracks."""
+    rng = Random(1234)
+    samples = array.array("h")
+    for i in range(int(duration * SR)):
+        t = i / SR
+        u = t / duration
+        amp = max(0.0, (1.0-u)**2) * min(1.0, t * 120)
+        note = notes[min(len(notes)-1, int(u*len(notes)))]
+        pitch = hz(note)
+        wave_v = math.sin(math.tau*pitch*t) * 0.65 + math.sin(math.tau*pitch*2*t)*0.14
+        wave_v += rng.uniform(-1,1)*noise
+        samples.append(int(max(-1.0,min(1.0,wave_v*amp*0.7))*32767))
+    target=OUT/(name+".wav")
+    with wave.open(str(target),"wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(SR)
+        w.writeframes(samples.tobytes())
+    print("SE",name,target.stat().st_size)
+
+if __name__ == "__main__":
+    render_sfx("confirm", ["E5","B5","E6"],0.19)
+    render_sfx("step", ["C4","G3"],0.085,0.06)
+    render_sfx("attack", ["E5","B4","E4"],0.23,0.12)
+    render_sfx("hit", ["D4","A3","D3"],0.19,0.22)
