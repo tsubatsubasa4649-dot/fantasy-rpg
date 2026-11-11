@@ -35,12 +35,17 @@ func _run() -> void:
 		check(ground.get_width() < 32 and ground.get_height() < 32, "Ground padding was cropped away")
 	check(ui.map_grid.get_child_count() == 70, "Map builds 10x7 visible tiles")
 	check(ui.description_label.text.contains("草原"), "Field visible on startup")
+	var walk_start: Vector2 = ui.hero_overlay.position
 	ui._walk(1, 0)
-	check(ui.tile_pos == Vector2i(2, 4), "Mobile movement updates tile")
+	check(ui.tile_pos == Vector2i(2, 4), "Mobile movement updates logical tile")
+	check(ui.hero_overlay.position.distance_to(walk_start) < 1.0, "Hero does not teleport to target on first input")
+	await create_timer(0.17).timeout
+	var halfway: float = ui.hero_overlay.position.distance_to(walk_start)
+	check(halfway > 2.0 and halfway < float(ui.cell_size) - 2.0, "Hero smoothly moves between neighboring tile coordinates")
 	check(ui.walking, "Movement remains animated after logical grid step")
 	check(ui.hero_overlay != null and ui.hero_overlay.texture != null, "Hero is persistent independent of terrain tiles")
 	check(not ui.action_scroll.visible, "Choices stay hidden until explicit interaction")
-	await create_timer(0.26).timeout
+	await create_timer(0.48).timeout
 	check(not ui.walking, "Smooth movement finishes after tween")
 	ui._interact()
 	check(ui.action_scroll.visible, "Talking reveals choices directly below dialogue")
@@ -56,7 +61,10 @@ func _run() -> void:
 	check(ui.music_player != null and ui.sound_player != null and ui.hit_player != null, "BGM and separate SFX channels exist")
 	for track in ["field", "cave", "battle", "step", "confirm", "attack", "hit"]:
 		check(ResourceLoader.exists("res://audio/" + track + ".wav"), "Original music track imported: " + track)
-	check(ui.management_panel.get_child_count() == 5, "Music mute control is in the menu")
+	check(ui.management_panel.get_child_count() == 6, "Music and audio test are both in menu")
+	ui._audio_diagnostic()
+	check(ui.audio_unlocked, "Explicit audio test unlocks the playback path")
+	check(ui.current_music_id == "field", "Audio test chooses current region BGM")
 	ui._toggle_music()
 	check(not ui.music_on and ui.music_toggle_button.text == "音楽 OFF", "Music can be muted")
 	ui._toggle_music()
@@ -75,10 +83,10 @@ func _run() -> void:
 	check(up.custom_minimum_size.x >= 90 and up.custom_minimum_size.y >= 80, "Directional touch target is at least 90x80")
 	ui._begin_hold(Vector2i(1, 0))
 	check(ui.tile_pos == Vector2i(3, 4), "Holding direction moves immediately")
-	await create_timer(0.26).timeout
+	await create_timer(0.48).timeout
 	ui._process(0.25)
 	check(ui.tile_pos == Vector2i(4, 4), "Held direction repeats movement")
-	await create_timer(0.26).timeout
+	await create_timer(0.48).timeout
 	ui._end_hold()
 	check(ui.held_direction == Vector2i.ZERO, "Releasing direction stops movement")
 	check(ui.audio_unlocked, "First input unlocks browser audio")
