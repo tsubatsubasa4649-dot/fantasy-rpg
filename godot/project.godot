@@ -3,10 +3,18 @@ config_version=5
 
 [application]
 config/name="Fantasy RPG — Data Foundation"
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/vertical_slice.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 
 [rendering]
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/default_filters/use_nearest_mipmap_filter=false
+
+[display]
+window/size/viewport_width=540
+window/size/viewport_height=900
+window/stretch/mode="canvas_items"
+
+[input_devices]
+pointing/emulate_touch_from_mouse=true
