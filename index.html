@@ -1,0 +1,6 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>風鳴りの洞窟 | Fantasy RPG</title><link rel="stylesheet" href="style.css"></head>
+<body><main><h1>風鳴りの洞窟</h1><div id="place">始まりの村</div><div id="status"></div><canvas id="game" width="320" height="240" aria-label="ゲーム画面"></canvas><p id="message" role="status">十字キーで移動しよう。画像素材はassetsに配置してね。</p>
+<section id="battle" hidden><div id="enemy-name"></div><img id="enemy-img" alt="敵"><p id="battle-msg"></p><div id="battle-menu"></div></section>
+<div class="pad"><button data-dir="up" class="up">▲</button><button data-dir="left" class="left">◀</button><button data-dir="down" class="down">▼</button><button data-dir="right" class="right">▶</button><button id="interact" class="action">話す／調べる</button></div><div class="system"><button id="save">セーブ</button><button id="load">ロード</button></div>
+<p class="note">※ゲーム画像は手描き・生成したPNGを後から追加する方式です。画像なしではマップとキャラクターが表示されません。</p></main><script src="game.js"></script></body></html>
