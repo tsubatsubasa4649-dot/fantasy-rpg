@@ -3,7 +3,7 @@ extends Control
 const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG ART-09 / PARTY SPRITES"
+const BUILD_ID := "RPG ART-10 / BALANCED BATTLE"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -334,7 +334,7 @@ func _build_ui() -> void:
 	battle_visual.add_theme_constant_override("separation", 8)
 	battle_panel.add_child(battle_visual)
 	battle_enemy_sprite = _battle_portrait("slime")
-	battle_enemy_sprite.custom_minimum_size = Vector2(124, 160)
+	battle_enemy_sprite.custom_minimum_size = Vector2(92, 96)
 	battle_visual.add_child(battle_enemy_sprite)
 	var separator := Label.new()
 	separator.text = "VS"
@@ -762,6 +762,7 @@ func _begin_battle(enemy_id: String) -> void:
 	battle_active = true
 	_play_music("battle")
 	battle_enemy_id = enemy_id
+	battle_enemy_sprite.custom_minimum_size = Vector2(128, 148) if enemy_id == "darklord" else Vector2(92, 96)
 	if textures.has(str(enemy.get("image", ""))):
 		battle_enemy_sprite.texture = textures[str(enemy.get("image", ""))]
 	for child in battle_party_visual.get_children():
@@ -770,11 +771,11 @@ func _begin_battle(enemy_id: String) -> void:
 	for ally in battle.allies:
 		var avatar_column := VBoxContainer.new()
 		avatar_column.alignment = BoxContainer.ALIGNMENT_CENTER
-		avatar_column.custom_minimum_size = Vector2(77, 85)
+		avatar_column.custom_minimum_size = Vector2(82, 96)
 		var record: Dictionary = game.registry.by_id("characters", str(ally["id"]))
 		var battle_art: String = str(record.get("battle_sprite_id", "hero"))
 		var avatar := _battle_portrait(battle_art)
-		avatar.custom_minimum_size = Vector2(72, 66)
+		avatar.custom_minimum_size = Vector2(80, 76)
 		avatar_column.add_child(avatar)
 		var caption := Label.new()
 		caption.text = str(ally["name"])
