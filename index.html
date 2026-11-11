@@ -39,10 +39,12 @@
     <div class="system">
       <button id="save">セーブ</button>
       <button id="load">ロード</button>
+      <button id="music-toggle" aria-pressed="false">♪ BGM オフ</button>
     </div>
 
     <p class="note">素材を統合済み。ブラウザでそのまま動作確認できます。</p>
   </main>
+  <script src="music/battle.js"></script>
   <script>const TILE=32, VIEW_W=320, VIEW_H=240;
 const maps={
   village:{name:"始まりの村",rows:["##########","#........#","#..H.....#","#........#","#....N...#","#........#","#........#","####..####"],npc:{x:5,y:4,text:"長老『風鳴りの洞窟に異変がある。気をつけてな。』"},exits:[{x:4,y:7,to:"field",tx:3,ty:6},{x:5,y:7,to:"field",tx:4,ty:6}]},
@@ -114,6 +116,7 @@ function interact(){
   tell('特に何もない。');
 }
 function battle(isBoss){
+  if(window.FantasyMusic && musicEnabled) window.FantasyMusic.start();
   enemy=isBoss?{name:'洞窟の守護者',hp:48,atk:7,exp:20,boss:true,img:'guardian'}:{name:'スライム',hp:15,atk:4,exp:5,boss:false,img:'slime'};
   el('battle').hidden=false;
   el('enemy-name').textContent=enemy.name;
@@ -126,7 +129,7 @@ function battle(isBoss){
   sayBattle(enemy.name+'が現れた！');
 }
 function sayBattle(s){el('battle-msg').textContent=s;tell(s);}
-function endBattle(){enemy=null;el('battle').hidden=true;render();}
+function endBattle(){enemy=null;el('battle').hidden=true;if(window.FantasyMusic)window.FantasyMusic.stop();render();}
 function turn(action){
   if(!enemy) return;
   let s='';
@@ -157,8 +160,19 @@ function save(){localStorage.setItem('fantasy-rpg-save-v1',JSON.stringify(state)
 function load(){
   const s=JSON.parse(localStorage.getItem('fantasy-rpg-save-v1')||'null');
   if(!s||!maps[s.map]){tell('セーブデータがない。');return;}
-  state={...fresh(),...s}; enemy=null; el('battle').hidden=true; render(); tell('ロードした。');
+  state={...fresh(),...s}; enemy=null; el('battle').hidden=true; if(window.FantasyMusic)window.FantasyMusic.stop(); render(); tell('ロードした。');
 }
+let musicEnabled=localStorage.getItem('fantasy-rpg-music')!=='off';
+const musicButton=el('music-toggle');
+function refreshMusicButton(){musicButton.textContent=musicEnabled?'♪ BGM オン':'♪ BGM オフ';musicButton.setAttribute('aria-pressed',String(musicEnabled));}
+refreshMusicButton();
+musicButton.addEventListener('click',async()=>{
+  musicEnabled=!musicEnabled;
+  localStorage.setItem('fantasy-rpg-music',musicEnabled?'on':'off');refreshMusicButton();
+  if(!window.FantasyMusic){tell('BGMの読み込みに失敗した。再読み込みしてね。');return;}
+  if(musicEnabled){const ok=await window.FantasyMusic.start();if(!ok)tell('この環境では音声を再生できなかった。');}
+  else window.FantasyMusic.stop();
+});
 const dirs={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
 for(const button of document.querySelectorAll('[data-dir]')){
   let timer=null;
