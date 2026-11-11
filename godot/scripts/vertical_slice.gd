@@ -3,7 +3,7 @@ extends Control
 const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG UX-11 / SOUND WALK CHOICES"
+const BUILD_ID := "RPG UX-12 / SLOW WALK AUDIO CHECK"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -53,11 +53,11 @@ var audio_unlocked: bool = false
 var pending_choices: bool = false
 var walking: bool = false
 var hero_overlay: TextureRect
-const WALK_DURATION := 0.19
+const WALK_DURATION := 0.42
 var held_direction: Vector2i = Vector2i.ZERO
 var repeat_clock: float = 0.0
-const FIRST_REPEAT_DELAY := 0.22
-const REPEAT_INTERVAL := 0.12
+const FIRST_REPEAT_DELAY := 0.08
+const REPEAT_INTERVAL := 0.02
 
 func _ready() -> void:
 	if not game.initialize():
@@ -286,6 +286,20 @@ func _play_music(track_id: String) -> void:
 	music_player.stream = track
 	music_player.play()
 
+func _audio_diagnostic() -> void:
+	# iOS WebAudio requires a user gesture. This handler is activated by tap.
+	_unlock_audio()
+	music_on = true
+	music_toggle_button.text = "音楽 ON"
+	current_music_id = ""
+	var active_track: String = "battle" if battle_active else ("cave" if location_id == "cave" else "field")
+	_play_music(active_track)
+	_play_sfx("confirm")
+	var available: bool = ResourceLoader.exists("res://audio/" + active_track + ".wav")
+	var status: String = "音声ファイルあり" if available else "音声ファイルがない"
+	var playback: String = "BGM再生指示済み" if music_player.playing else "BGM再生できず"
+	_show_message(status + " ／ " + playback + "。音が出なければiPhoneの消音・音量を確認。")
+
 func _toggle_music() -> void:
 	_unlock_audio()
 	music_on = not music_on
@@ -319,7 +333,7 @@ func _build_ui() -> void:
 	hud_panel.add_child(hud_title)
 
 	build_label = Label.new()
-	build_label.text = "UX-11"
+	build_label.text = "UX-12"
 	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	build_label.add_theme_font_size_override("font_size", 11)
 	build_label.add_theme_color_override("font_color", Color("#9fb5d8"))
@@ -458,7 +472,7 @@ func _build_ui() -> void:
 	management_panel.alignment = BoxContainer.ALIGNMENT_CENTER
 	management_panel.add_theme_constant_override("separation", 6)
 	root_column.add_child(management_panel)
-	for entry in [["編成", Callable(self, "_auto_party")], ["セーブ", Callable(self, "_save")], ["ロード", Callable(self, "_load")], ["周回", Callable(self, "_next_loop")], ["音楽 ON", Callable(self, "_toggle_music")]]:
+	for entry in [["編成", Callable(self, "_auto_party")], ["セーブ", Callable(self, "_save")], ["ロード", Callable(self, "_load")], ["周回", Callable(self, "_next_loop")], ["音楽 ON", Callable(self, "_toggle_music")], ["音テスト", Callable(self, "_audio_diagnostic")]]:
 		var manage_button := _add_button(management_panel, str(entry[0]), entry[1])
 		manage_button.custom_minimum_size = Vector2(115, 64)
 		manage_button.add_theme_font_size_override("font_size", 16)
@@ -529,7 +543,7 @@ func _layout_ui() -> void:
 	management_panel.position = Vector2(margin, header_h + 13)
 	management_panel.size = Vector2(w - margin * 2.0, 74)
 	for child in management_panel.get_children():
-		child.custom_minimum_size = Vector2((w - 53) / 5.0, 63)
+		child.custom_minimum_size = Vector2((w - 58) / 6.0, 63)
 	if map_grid.get_child_count() > 0:
 		_draw_map()
 		call_deferred("_sync_hero_overlay")
@@ -757,7 +771,7 @@ func _walk(dx: int, dy: int) -> void:
 	var start: Vector2 = hero_overlay.position
 	var finish: Vector2 = start + Vector2(dx, dy) * float(cell_size)
 	var tween := create_tween()
-	tween.tween_property(hero_overlay, "position", finish, WALK_DURATION)
+	tween.tween_property(hero_overlay, "position", finish, WALK_DURATION).set_trans(Tween.TRANS_LINEAR)
 	tween.tween_callback(func():
 		walking = false
 		_refresh()
