@@ -44,6 +44,8 @@ func _run() -> void:
 	check(ui.map_frame.position.y + ui.map_frame.size.y < ui.dialogue_panel.position.y, "Map and dialogue are separated")
 	check(ui.menu_button.text == "メニュー", "Compact menu replaces permanent button row")
 	check(ui.music_player != null, "BGM playback node is configured")
+	for track in ["field", "cave", "battle"]:
+		check(ResourceLoader.exists("res://audio/" + track + ".wav"), "Original music track imported: " + track)
 	check(ui.management_panel.get_child_count() == 5, "Music mute control is in the menu")
 	ui._toggle_music()
 	check(not ui.music_on and ui.music_toggle_button.text == "音楽 OFF", "Music can be muted")
