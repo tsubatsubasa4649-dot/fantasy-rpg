@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "enemies": [
+    {
+      "id": "slime",
+      "name": "スライム",
+      "image": "slime",
+      "max_hp": 31,
+      "attack": 5,
+      "defense": 1,
+      "when": {
+        "always": true
+      },
+      "on_win_event": "",
+      "reward": "HP回復の薬草を見つけた。"
+    },
+    {
+      "id": "darklord",
+      "name": "魔王の影",
+      "image": "guardian",
+      "max_hp": 92,
+      "attack": 9,
+      "defense": 3,
+      "when": {
+        "phase_gte": 3
+      },
+      "on_win_event": "defeat_darklord",
+      "reward": "魔王の影は消え、世界に朝が訪れる。"
+    }
+  ],
+  "allies": [
+    {
+      "character_id": "hero",
+      "hp": 42,
+      "attack": 12,
+      "skill_damage": 19
+    },
+    {
+      "character_id": "ch_ricky",
+      "hp": 38,
+      "attack": 11,
+      "skill_damage": 17
+    },
+    {
+      "character_id": "ch_meri",
+      "hp": 26,
+      "attack": 9,
+      "skill_damage": 18
+    },
+    {
+      "character_id": "ch_goro",
+      "hp": 53,
+      "attack": 8,
+      "skill_damage": 12
+    }
+  ]
+}
