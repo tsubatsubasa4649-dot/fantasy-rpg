@@ -27,11 +27,11 @@ func new_run(carryover: Array = []) -> void:
 			if not str(item_id) in safe_items and safe_items.size() < 2:
 				safe_items.append(str(item_id))
 	state = {
-		"day": 0,
+		"day": int(registry.world().get("initial_day", 0)),
 		"phase": 1,
-		"flags": {"village_helped":false,"forest_clue":false,"refugees_saved":false},
+		"flags": registry.world().get("initial_flags", {}).duplicate(true),
 		"recruited": [],
-		"party": ["hero"],
+		"party": [str(registry.world().get("party", {}).get("hero_id", "hero"))],
 		"storylines": {},
 		"events_completed": [],
 		"items": safe_items,
@@ -60,11 +60,12 @@ func set_party(companion_ids: Array) -> bool:
 	var allowed: int = int(registry.world().get("party", {}).get("max_size", 4)) - 1
 	if companion_ids.size() > allowed:
 		return false
-	var candidate: Array = ["hero"]
+	var hero_id: String = str(registry.world().get("party", {}).get("hero_id", "hero"))
+	var candidate: Array = [hero_id]
 	for companion in companion_ids:
 		if typeof(companion) != TYPE_STRING:
 			return false
-		if companion == "hero" or companion in candidate or not companion in state.get("recruited", []):
+		if companion == hero_id or companion in candidate or not companion in state.get("recruited", []):
 			return false
 		candidate.append(companion)
 	state["party"] = candidate
@@ -118,7 +119,7 @@ func advance_days(days: int) -> bool:
 	state["phase"] = next_phase
 	if state["day"] >= int(registry.world().get("deadline_day", 60)):
 		state["flags"]["world_expired"] = true
-		state["ending"] = "ED_END"
+		state["ending"] = str(registry.world().get("deadline_ending_id", "ED_END"))
 	return true
 
 func _cost_days(value: Variant) -> int:
@@ -183,14 +184,14 @@ func _valid_loaded_state(candidate: Dictionary) -> bool:
 		return false
 	if typeof(candidate.get("day")) != TYPE_INT or candidate["day"] < 0:
 		return false
-	if candidate["party"].is_empty() or candidate["party"][0] != "hero" or candidate["party"].size() > 4:
+	if candidate["party"].is_empty() or candidate["party"][0] != str(registry.world().get("party", {}).get("hero_id", "hero")) or candidate["party"].size() > int(registry.world().get("party", {}).get("max_size", 4)):
 		return false
 	var seen: Dictionary = {}
 	for id in candidate["party"]:
 		if seen.has(str(id)):
 			return false
 		seen[str(id)] = true
-		if id != "hero" and not id in candidate["recruited"]:
+		if id != str(registry.world().get("party", {}).get("hero_id", "hero")) and not id in candidate["recruited"]:
 			return false
 	for id in candidate["recruited"]:
 		if registry.by_id("characters", str(id)).is_empty():
