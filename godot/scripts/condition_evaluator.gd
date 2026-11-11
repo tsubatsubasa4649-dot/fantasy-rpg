@@ -39,7 +39,7 @@ func matches(expr: Variant, state: Dictionary, meta: Dictionary = {}) -> bool:
 		"phase_is":
 			return state.get("phase", 1) == value
 		"phase_gte":
-			return state.get("phase", 1) >= value if typeof(value) == TYPE_INT else false
+			return state.get("phase", 1) >= value if typeof(value) in [TYPE_INT, TYPE_FLOAT] else false
 		"phase_lte":
 			return state.get("phase", 1) <= value if typeof(value) == TYPE_INT else false
 		"day_gte":
