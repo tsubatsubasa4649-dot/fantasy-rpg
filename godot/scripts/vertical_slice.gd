@@ -3,7 +3,7 @@ extends Control
 const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const TILE_SIZE := 44
-const JAPANESE_FONT_PATH := "res://assets/NotoSansJP.ttf"
+const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
 var textures: Dictionary = {}
@@ -41,17 +41,15 @@ func _ready() -> void:
 	_refresh()
 
 func _apply_japanese_font() -> void:
-	# Web exports have no reliable Japanese system font fallback.
-	# This open-source OFL font is fetched during CI before import/export.
-	var jp_font := FontFile.new()
-	var result: Error = jp_font.load_dynamic_font(JAPANESE_FONT_PATH)
-	if result != OK:
-		push_error("Japanese font missing: " + JAPANESE_FONT_PATH)
-		return
+	# Resource preload makes the imported font an explicit export dependency.
 	var ui_theme := Theme.new()
-	ui_theme.default_font = jp_font
+	ui_theme.default_font = JAPANESE_FONT
 	ui_theme.default_font_size = 19
 	theme = ui_theme
+	ThemeDB.fallback_font = JAPANESE_FONT
+	ThemeDB.fallback_font_size = 19
+	if not JAPANESE_FONT.has_char(0x59CB):
+		push_error("Japanese glyph missing from exported Noto Sans JP font")
 
 func _strip_tile_margin(source: Image) -> Image:
 	# Cropping the white frame baked into generated PNGs; no art is drawn by code.
@@ -78,6 +76,43 @@ func _strip_tile_margin(source: Image) -> Image:
 	var crop_height: int = maxi(1, y1 - crop_y)
 	return source.get_region(Rect2i(crop_x, crop_y, crop_width, crop_height))
 
+func _remove_house_background(source: Image) -> Image:
+	# Edge-connected dark backdrop is not part of the generated house art.
+	# Flood-fill transparency preserves enclosed dark details such as windows.
+	var img := source.duplicate()
+	img.convert(Image.FORMAT_RGBA8)
+	var w: int = img.get_width()
+	var h: int = img.get_height()
+	var visited := PackedByteArray()
+	visited.resize(w * h)
+	var queue: Array[Vector2i] = []
+	for x in range(w):
+		queue.append(Vector2i(x, 0))
+		queue.append(Vector2i(x, h - 1))
+	for y in range(h):
+		queue.append(Vector2i(0, y))
+		queue.append(Vector2i(w - 1, y))
+	var cursor: int = 0
+	while cursor < queue.size():
+		var pos: Vector2i = queue[cursor]
+		cursor += 1
+		if pos.x < 0 or pos.x >= w or pos.y < 0 or pos.y >= h:
+			continue
+		var index: int = pos.y * w + pos.x
+		if visited[index] != 0:
+			continue
+		visited[index] = 1
+		var c: Color = img.get_pixelv(pos)
+		# Includes the dark grey/black flat background of the image-gen tile.
+		if c.a > 0.5 and not (c.r < 0.27 and c.g < 0.27 and c.b < 0.29):
+			continue
+		img.set_pixelv(pos, Color(0, 0, 0, 0))
+		queue.append(pos + Vector2i.LEFT)
+		queue.append(pos + Vector2i.RIGHT)
+		queue.append(pos + Vector2i.UP)
+		queue.append(pos + Vector2i.DOWN)
+	return img
+
 func _load_art() -> void:
 	for id in ["ground", "wall", "house", "cave-entrance", "elder", "hero", "slime", "guardian"]:
 		var path: String = "res://assets/" + id + ".b64"
@@ -90,6 +125,8 @@ func _load_art() -> void:
 			continue
 		if id == "ground" or id == "wall":
 			image = _strip_tile_margin(image)
+		elif id == "house":
+			image = _remove_house_background(image)
 		textures[id] = ImageTexture.create_from_image(image)
 
 func _build_ui() -> void:
@@ -227,13 +264,15 @@ func _draw_map() -> void:
 			cell.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			cell.stretch_mode = TextureRect.STRETCH_SCALE
 			var symbol: String = str(rows[y]).substr(x, 1)
-			var art_id: String = "wall" if symbol == "#" else ("house" if symbol == "H" else "ground")
+			var art_id: String = "wall" if symbol == "#" else "ground"
 			if textures.has(art_id):
 				cell.texture = textures[art_id]
 			map_grid.add_child(cell)
 			var sprite_id: String = ""
 			if tile_pos == Vector2i(x, y):
 				sprite_id = "hero"
+			elif symbol == "H":
+				sprite_id = "house"
 			else:
 				for point in map_data.get("points", []):
 					if not _point_visible(point):
