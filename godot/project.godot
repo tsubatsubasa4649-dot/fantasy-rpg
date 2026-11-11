@@ -12,7 +12,7 @@ renderer/rendering_method.mobile="gl_compatibility"
 textures/default_filters/use_nearest_mipmap_filter=false
 
 [display]
-window/size/viewport_width=540
+window/size/viewport_width=450
 window/size/viewport_height=900
 window/stretch/mode="canvas_items"
 
