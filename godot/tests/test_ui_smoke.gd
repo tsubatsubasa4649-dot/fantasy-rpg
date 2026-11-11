@@ -21,7 +21,8 @@ func _run() -> void:
 	var ui: Control = packed.instantiate()
 	root.add_child(ui)
 	check(ui.game.registry.records("maps").size() == 2, "Scene initializes data registry")
-	check(ui.textures.size() == 8, "All eight generated PNG images decode")
+	check(ui.textures.size() >= 16, "Original eight images plus eight unique party sprites decode")
+	check(ui.textures.has("ricky_field") and ui.textures.has("meri_battle") and ui.textures.has("goro_battle"), "Three companion sprites are available in both game modes")
 	check(ui.theme != null and ui.theme.default_font != null, "Imported Japanese font resource is loaded")
 	check(ThemeDB.fallback_font == ui.theme.default_font, "Global UI fallback matches bundled Japanese font")
 	if ui.theme != null and ui.theme.default_font != null:
