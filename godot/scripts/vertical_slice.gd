@@ -3,6 +3,7 @@ extends Control
 const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const TILE_SIZE := 44
+const BUILD_ID := "RPG FIX-04 / 2026-11-11"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -141,6 +142,11 @@ func _build_ui() -> void:
 	add_child(root_column)
 	var title := Label.new()
 	title.text = "終わりの地図｜Godot 縦切り試作"
+	var build_label := Label.new()
+	build_label.text = BUILD_ID
+	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	build_label.add_theme_font_size_override("font_size", 13)
+	root_column.add_child(build_label)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 22)
 	root_column.add_child(title)
