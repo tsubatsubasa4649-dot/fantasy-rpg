@@ -8,7 +8,10 @@
       "is_hero": true,
       "recruit": {
         "always": true
-      }
+      },
+      "field_sprite_id": "hero",
+      "battle_sprite_id": "hero",
+      "sprite_profile_id": "hero"
     },
     {
       "id": "ch_ricky",
@@ -31,7 +34,10 @@
       "event_id": "recruit_ricky",
       "relations": [
         "ch_meri"
-      ]
+      ],
+      "field_sprite_id": "elder",
+      "battle_sprite_id": "elder",
+      "sprite_profile_id": "ch_ricky"
     },
     {
       "id": "ch_meri",
@@ -54,7 +60,10 @@
       "event_id": "recruit_meri",
       "relations": [
         "ch_ricky"
-      ]
+      ],
+      "field_sprite_id": "elder",
+      "battle_sprite_id": "elder",
+      "sprite_profile_id": "ch_meri"
     },
     {
       "id": "ch_goro",
@@ -77,7 +86,10 @@
       "event_id": "recruit_goro",
       "relations": [
         "ch_ricky"
-      ]
+      ],
+      "field_sprite_id": "elder",
+      "battle_sprite_id": "elder",
+      "sprite_profile_id": "ch_goro"
     }
   ]
 }
