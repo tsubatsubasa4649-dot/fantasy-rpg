@@ -7,7 +7,7 @@ var game = GameSession.new()
 var battle = BattleEngine.new()
 var textures: Dictionary = {}
 var location_id: String = "field"
-var position: Vector2i = Vector2i(1, 4)
+var tile_pos: Vector2i = Vector2i(1, 4)
 var battle_active: bool = false
 var battle_enemy_id: String = ""
 var status_label: Label
@@ -181,7 +181,7 @@ func _draw_map() -> void:
 				cell.texture = textures[art_id]
 			map_grid.add_child(cell)
 			var sprite_id: String = ""
-			if position == Vector2i(x, y):
+			if tile_pos == Vector2i(x, y):
 				sprite_id = "hero"
 			else:
 				for point in map_data.get("points", []):
@@ -212,7 +212,7 @@ func _nearby_point() -> Dictionary:
 		var xy: Array = point.get("at", [])
 		if xy.size() < 2:
 			continue
-		var distance: int = abs(int(xy[0]) - position.x) + abs(int(xy[1]) - position.y)
+		var distance: int = abs(int(xy[0]) - tile_pos.x) + abs(int(xy[1]) - tile_pos.y)
 		if distance <= 1:
 			return point
 	return {}
@@ -240,13 +240,13 @@ func _show_nearby_actions() -> void:
 func _walk(dx: int, dy: int) -> void:
 	if battle_active or not game.state.get("ending", "").is_empty():
 		return
-	var goal := position + Vector2i(dx, dy)
+	var goal := tile_pos + Vector2i(dx, dy)
 	var rows: Array = _current_rows()
 	if goal.y < 0 or goal.y >= rows.size() or goal.x < 0 or goal.x >= str(rows[goal.y]).length():
 		return
 	if str(rows[goal.y]).substr(goal.x, 1) == "#":
 		return
-	position = goal
+	tile_pos = goal
 	_refresh()
 
 func _interact() -> void:
@@ -285,7 +285,7 @@ func _travel(destination: String) -> void:
 		return
 	location_id = destination
 	var spawn: Array = _map().get("spawn", [1, 1])
-	position = Vector2i(int(spawn[0]), int(spawn[1]))
+	tile_pos = Vector2i(int(spawn[0]), int(spawn[1]))
 	_show_message(str(_map().get("name", "")) + "に到着。世界が2日進んだ。")
 
 func _auto_party() -> void:
@@ -361,13 +361,13 @@ func _choose_battle(action: String) -> void:
 		else:
 			_show_message("全滅。宿屋で目を覚ました。（2日経過）")
 			location_id = "field"
-			position = Vector2i(4, 2)
+			tile_pos = Vector2i(4, 2)
 			game.advance_days(2)
 	_refresh()
 
 func _save() -> void:
 	game.state["scene_map"] = location_id
-	game.state["scene_xy"] = [position.x, position.y]
+	game.state["scene_xy"] = [tile_pos.x, tile_pos.y]
 	_show_message("セーブ完了。" if game.save_game(1) else "セーブ失敗。")
 
 func _load() -> void:
@@ -385,14 +385,14 @@ func _restore_location() -> void:
 		location_id = place
 	var xy: Array = game.state.get("scene_xy", [1, 4])
 	if xy.size() >= 2:
-		position = Vector2i(int(xy[0]), int(xy[1]))
+		tile_pos = Vector2i(int(xy[0]), int(xy[1]))
 
 func _next_loop() -> void:
 	if not game.begin_next_loop():
 		_show_message("エンディング到達後にだけ次周回へ進める。")
 		return
 	location_id = "field"
-	position = Vector2i(1, 4)
+	tile_pos = Vector2i(1, 4)
 	battle_active = false
 	_show_message("次の旅が始まった。実績だけが残っている。")
 	_refresh()
