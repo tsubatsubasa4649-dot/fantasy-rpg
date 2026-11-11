@@ -42,6 +42,10 @@ var button_size: Vector2 = Vector2(94, 74)
 var last_point_id: String = ""
 var last_phase: int = 0
 var previous_tile_pos: Vector2i = Vector2i(-1, -1)
+var music_player: AudioStreamPlayer
+var music_on: bool = true
+var current_music_id: String = ""
+var music_toggle_button: Button
 var held_direction: Vector2i = Vector2i.ZERO
 var repeat_clock: float = 0.0
 const FIRST_REPEAT_DELAY := 0.22
@@ -56,9 +60,11 @@ func _ready() -> void:
 	_apply_japanese_font()
 	_load_art()
 	_build_ui()
+	_setup_music()
 	_restore_location()
 	_show_message("魔王を倒せ。それだけが、思い出せる使命だった。")
 	_refresh()
+	_play_music_for_location()
 
 func _apply_japanese_font() -> void:
 	# Resource preload makes the imported font an explicit export dependency.
@@ -198,6 +204,43 @@ func _style_button(button: Button, accent: bool = false) -> void:
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	button.add_theme_color_override("font_pressed_color", Color.WHITE)
 	button.focus_mode = Control.FOCUS_NONE
+
+func _setup_music() -> void:
+	music_player = AudioStreamPlayer.new()
+	music_player.volume_db = -13.0
+	music_player.bus = "Master"
+	add_child(music_player)
+
+func _play_music_for_location() -> void:
+	_play_music("cave" if location_id == "cave" else "field")
+
+func _play_music(track_id: String) -> void:
+	if current_music_id == track_id:
+		return
+	current_music_id = track_id
+	if music_player == null:
+		return
+	music_player.stop()
+	if not music_on:
+		return
+	var track: AudioStream = load("res://audio/" + track_id + ".ogg") as AudioStream
+	if track == null:
+		push_warning("Missing original BGM: " + track_id)
+		return
+	if track is AudioStreamOggVorbis:
+		track.loop = true
+	music_player.stream = track
+	music_player.play()
+
+func _toggle_music() -> void:
+	music_on = not music_on
+	music_toggle_button.text = "音楽 ON" if music_on else "音楽 OFF"
+	if music_on:
+		var restart_id: String = current_music_id
+		current_music_id = ""
+		_play_music(restart_id if not restart_id.is_empty() else "field")
+	elif music_player != null:
+		music_player.stop()
 
 func _build_ui() -> void:
 	var bg := ColorRect.new()
@@ -351,11 +394,13 @@ func _build_ui() -> void:
 	management_panel.alignment = BoxContainer.ALIGNMENT_CENTER
 	management_panel.add_theme_constant_override("separation", 6)
 	root_column.add_child(management_panel)
-	for entry in [["編成", Callable(self, "_auto_party")], ["セーブ", Callable(self, "_save")], ["ロード", Callable(self, "_load")], ["周回", Callable(self, "_next_loop")]]:
+	for entry in [["編成", Callable(self, "_auto_party")], ["セーブ", Callable(self, "_save")], ["ロード", Callable(self, "_load")], ["周回", Callable(self, "_next_loop")], ["音楽 ON", Callable(self, "_toggle_music")]]:
 		var manage_button := _add_button(management_panel, str(entry[0]), entry[1])
 		manage_button.custom_minimum_size = Vector2(115, 64)
-		manage_button.add_theme_font_size_override("font_size", 18)
+		manage_button.add_theme_font_size_override("font_size", 16)
 		_style_button(manage_button)
+		if str(entry[0]) == "音楽 ON":
+			music_toggle_button = manage_button
 	management_panel.visible = false
 
 	battle_panel.visible = false
@@ -420,7 +465,7 @@ func _layout_ui() -> void:
 	management_panel.position = Vector2(margin, header_h + 13)
 	management_panel.size = Vector2(w - margin * 2.0, 74)
 	for child in management_panel.get_children():
-		child.custom_minimum_size = Vector2((w - 48) / 4.0, 63)
+		child.custom_minimum_size = Vector2((w - 53) / 5.0, 63)
 	if map_grid.get_child_count() > 0:
 		_draw_map()
 
@@ -656,6 +701,7 @@ func _travel(destination: String) -> void:
 		_show_message("移動できない。")
 		return
 	location_id = destination
+	_play_music_for_location()
 	var spawn: Array = _map().get("spawn", [1, 1])
 	tile_pos = Vector2i(int(spawn[0]), int(spawn[1]))
 	_show_message(str(_map().get("name", "")) + "に到着。世界が2日進んだ。")
@@ -688,6 +734,7 @@ func _begin_battle(enemy_id: String) -> void:
 		_show_message("戦闘できる仲間がいない。")
 		return
 	battle_active = true
+	_play_music("battle")
 	battle_enemy_id = enemy_id
 	if textures.has(str(enemy.get("image", ""))):
 		battle_enemy_sprite.texture = textures[str(enemy.get("image", ""))]
@@ -746,6 +793,7 @@ func _choose_battle(action: String) -> void:
 	_show_message(str(result.get("text", "")))
 	if result.get("resolved", false) and battle.finished:
 		battle_active = false
+		_play_music_for_location()
 		if battle.won:
 			var on_win: String = str(battle.enemy.get("on_win_event", ""))
 			if not on_win.is_empty():
@@ -771,6 +819,7 @@ func _load() -> void:
 		return
 	_restore_location()
 	battle_active = false
+	_play_music_for_location()
 	_show_message("ロード完了。")
 	_refresh()
 
@@ -787,6 +836,7 @@ func _next_loop() -> void:
 		_show_message("エンディング到達後にだけ次周回へ進める。")
 		return
 	location_id = "field"
+	_play_music_for_location()
 	tile_pos = Vector2i(1, 4)
 	battle_active = false
 	_show_message("次の旅が始まった。実績だけが残っている。")
