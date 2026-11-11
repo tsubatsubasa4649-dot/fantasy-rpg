@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Build original loopable music for the Godot Web edition.
-Pure Python synth + ffmpeg Ogg Vorbis encoding; no third-party samples,
+Pure Python WAV synth; no external encoder, samples,
 no copyrighted melodies. WAV samples are generated, not images.
 Run: python3 tools/build_audio.py
 """
@@ -113,15 +113,13 @@ def render(title, bpm, roots, lead, style):
         seam = min(1.0, i / max(1,fade_samples),
                    (len(audio)-i-1) / max(1,fade_samples))
         pcm.append(int(max(-1.0, min(1.0,x*gain*seam)) * 32767))
-    with tempfile.TemporaryDirectory() as tmp:
-        wavfile = pathlib.Path(tmp) / "track.wav"
-        with wave.open(str(wavfile),"wb") as w:
-            w.setnchannels(1);w.setsampwidth(2);w.setframerate(SR);w.writeframes(pcm.tobytes())
-        target = OUT / (title + ".ogg")
-        subprocess.run(["ffmpeg","-hide_banner","-loglevel","error","-y",
-                        "-i",str(wavfile),"-c:a","libvorbis","-q:a","5",str(target)],
-                        check=True)
-        print(title, f"{length:.1f}s", f"{target.stat().st_size} bytes")
+    target = OUT / (title + ".wav")
+    with wave.open(str(target), "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(SR)
+        w.writeframes(pcm.tobytes())
+    print(title, f"{length:.1f}s", f"{target.stat().st_size} bytes")
 
 def repeat_to_8bars(patterns):
     return [n for p in patterns for n in p.split()]
