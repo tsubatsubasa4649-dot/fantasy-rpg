@@ -3,7 +3,7 @@ extends Control
 const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG ART-10 / BALANCED BATTLE"
+const BUILD_ID := "RPG UX-11 / SOUND WALK CHOICES"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -47,6 +47,12 @@ var music_player: AudioStreamPlayer
 var music_on: bool = true
 var current_music_id: String = ""
 var music_toggle_button: Button
+var sound_player: AudioStreamPlayer
+var audio_unlocked: bool = false
+var pending_choices: bool = false
+var walking: bool = false
+var hero_overlay: TextureRect
+const WALK_DURATION := 0.19
 var held_direction: Vector2i = Vector2i.ZERO
 var repeat_clock: float = 0.0
 const FIRST_REPEAT_DELAY := 0.22
@@ -230,9 +236,29 @@ func _style_button(button: Button, accent: bool = false) -> void:
 
 func _setup_music() -> void:
 	music_player = AudioStreamPlayer.new()
-	music_player.volume_db = -13.0
+	music_player.volume_db = -5.0
 	music_player.bus = "Master"
 	add_child(music_player)
+	sound_player = AudioStreamPlayer.new()
+	sound_player.volume_db = -4.0
+	add_child(sound_player)
+
+func _unlock_audio() -> void:
+	if audio_unlocked:
+		return
+	audio_unlocked = true
+	if music_on and music_player != null:
+		music_player.stop()
+		current_music_id = ""
+		_play_music("battle" if battle_active else ("cave" if location_id == "cave" else "field"))
+
+func _play_sfx(effect_id: String) -> void:
+	_unlock_audio()
+	var effect: AudioStream = load("res://audio/" + effect_id + ".wav") as AudioStream
+	if effect == null:
+		return
+	sound_player.stream = effect
+	sound_player.play()
 
 func _play_music_for_location() -> void:
 	_play_music("cave" if location_id == "cave" else "field")
@@ -256,6 +282,7 @@ func _play_music(track_id: String) -> void:
 	music_player.play()
 
 func _toggle_music() -> void:
+	_unlock_audio()
 	music_on = not music_on
 	music_toggle_button.text = "音楽 ON" if music_on else "音楽 OFF"
 	if music_on:
@@ -287,7 +314,7 @@ func _build_ui() -> void:
 	hud_panel.add_child(hud_title)
 
 	build_label = Label.new()
-	build_label.text = "UI-07"
+	build_label.text = "UX-11"
 	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	build_label.add_theme_font_size_override("font_size", 11)
 	build_label.add_theme_color_override("font_color", Color("#9fb5d8"))
@@ -324,6 +351,14 @@ func _build_ui() -> void:
 	map_grid.add_theme_constant_override("v_separation", 0)
 	map_grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	map_center.add_child(map_grid)
+	hero_overlay = TextureRect.new()
+	hero_overlay.custom_minimum_size = Vector2(cell_size, cell_size)
+	hero_overlay.size = Vector2(cell_size, cell_size)
+	hero_overlay.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	hero_overlay.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	hero_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hero_overlay.texture = textures.get("hero_field", textures.get("hero"))
+	map_center.add_child(hero_overlay)
 
 	battle_panel = VBoxContainer.new()
 	battle_panel.add_theme_constant_override("separation", 22)
@@ -372,6 +407,7 @@ func _build_ui() -> void:
 	action_scroll = ScrollContainer.new()
 	action_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	action_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	action_scroll.visible = false
 	root_column.add_child(action_scroll)
 	action_list = VBoxContainer.new()
 	action_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -396,7 +432,7 @@ func _build_ui() -> void:
 	_add_pad_gap(pad)
 	_add_direction_button(pad, "▼", Vector2i(0, 1))
 	_add_pad_gap(pad)
-	var interact_button := _add_button(direction_controls, "調べる\n決定", _interact)
+	var interact_button := _add_button(direction_controls, "話す\n調べる", _interact)
 	interact_button.custom_minimum_size = Vector2(119, 140)
 	interact_button.add_theme_font_size_override("font_size", 20)
 	_style_button(interact_button, true)
@@ -491,6 +527,7 @@ func _layout_ui() -> void:
 		child.custom_minimum_size = Vector2((w - 53) / 5.0, 63)
 	if map_grid.get_child_count() > 0:
 		_draw_map()
+		call_deferred("_sync_hero_overlay")
 
 func _toggle_menu() -> void:
 	if battle_active:
@@ -517,6 +554,7 @@ func _add_direction_button(parent: GridContainer, text_value: String, vector: Ve
 	return button
 
 func _begin_hold(vector: Vector2i) -> void:
+	_unlock_audio()
 	held_direction = vector
 	repeat_clock = FIRST_REPEAT_DELAY
 	_walk(vector.x, vector.y)
@@ -526,7 +564,7 @@ func _end_hold() -> void:
 	repeat_clock = 0.0
 
 func _process(delta: float) -> void:
-	if held_direction == Vector2i.ZERO:
+	if held_direction == Vector2i.ZERO or walking:
 		return
 	if battle_active or not game.state.get("ending", "").is_empty():
 		_end_hold()
@@ -587,11 +625,27 @@ func _refresh() -> void:
 		battle_backdrop.visible = false
 		combat_controls.visible = false
 		map_frame.visible = true
-		action_scroll.visible = true
+		action_scroll.visible = pending_choices
 		direction_controls.visible = game.state.get("ending", "").is_empty()
 		if not direction_controls.visible:
 			_end_hold()
 		_show_nearby_actions()
+
+func _hero_cell_position(point: Vector2i) -> Vector2:
+	var rows: Array = _current_rows()
+	var width: int = str(rows[0]).length() if not rows.is_empty() else 10
+	var index: int = point.y * width + point.x
+	if index >= 0 and index < map_grid.get_child_count():
+		var cell: Control = map_grid.get_child(index)
+		return map_grid.position + cell.position
+	return map_grid.position + Vector2(point.x, point.y) * float(cell_size)
+
+func _sync_hero_overlay() -> void:
+	if hero_overlay == null or map_grid.get_child_count() == 0 or walking:
+		return
+	hero_overlay.size = Vector2(cell_size, cell_size)
+	hero_overlay.position = _hero_cell_position(tile_pos)
+	hero_overlay.flip_h = facing.x > 0
 
 func _draw_map() -> void:
 	for item in map_grid.get_children():
@@ -611,9 +665,7 @@ func _draw_map() -> void:
 				cell.texture = textures[art_id]
 			map_grid.add_child(cell)
 			var sprite_id: String = ""
-			if tile_pos == Vector2i(x, y):
-				sprite_id = "hero_field" if textures.has("hero_field") else "hero"
-			elif symbol == "H":
+			if symbol == "H":
 				sprite_id = "house"
 			else:
 				for point in map_data.get("points", []):
@@ -632,13 +684,9 @@ func _draw_map() -> void:
 				if textures.has(sprite_id):
 					sprite.texture = textures[sprite_id]
 				cell.add_child(sprite)
-				if sprite_id in ["hero", "hero_field"]:
-					sprite.flip_h = facing.x > 0
-				if sprite_id in ["hero", "hero_field"] and tile_pos != previous_tile_pos:
-					sprite.position.y = -3.0
-					var walk_tween := create_tween()
-					walk_tween.tween_property(sprite, "position:y", 0.0, 0.11)
-	previous_tile_pos = tile_pos
+
+	if not walking:
+		call_deferred("_sync_hero_overlay")
 
 func _point_visible(point: Dictionary) -> bool:
 	return game.can(point.get("visible_when", {"always": true}))
@@ -660,46 +708,69 @@ func _show_nearby_actions() -> void:
 	for node in action_list.get_children():
 		action_list.remove_child(node)
 		node.queue_free()
+	action_scroll.visible = pending_choices and not battle_active
+	if not pending_choices:
+		return
 	var point: Dictionary = _nearby_point()
 	if point.is_empty():
-		last_point_id = ""
-		var search_button := _add_button(action_list, "辺りを調べる", _interact)
-		search_button.custom_minimum_size.y = 56
+		var empty := Label.new()
+		empty.text = "ここには調べられるものがない。"
+		action_list.add_child(empty)
 		return
 	var phase: String = str(game.state.get("phase", 1))
 	var dialogue: Dictionary = point.get("dialogue", {})
-	if last_point_id != str(point.get("id")) or last_phase != int(game.state.get("phase", 1)):
-		_show_message(str(point.get("label", "")) + "「" + str(dialogue.get(phase, "……")) + "」")
-	last_point_id = str(point.get("id"))
-	last_phase = int(game.state.get("phase", 1))
+	_show_message(str(point.get("label", "")) + "「" + str(dialogue.get(phase, "……")) + "」")
 	for action in point.get("actions", []):
 		var entry: Dictionary = action
-		var label: String = str(entry.get("label", "進む"))
-		var action_button := _add_button(action_list, label, func(): _perform(entry))
-		action_button.custom_minimum_size.y = 56
+		var option := _add_button(action_list, str(entry.get("label", "進む")), func(): _perform(entry))
+		option.custom_minimum_size.y = 56
 
 func _walk(dx: int, dy: int) -> void:
-	if battle_active or not game.state.get("ending", "").is_empty():
+	if walking or battle_active or not game.state.get("ending", "").is_empty():
 		return
+	_unlock_audio()
 	facing = Vector2i(dx, dy)
+	if hero_overlay != null:
+		hero_overlay.flip_h = facing.x > 0
 	var goal := tile_pos + facing
 	var rows: Array = _current_rows()
 	if goal.y < 0 or goal.y >= rows.size() or goal.x < 0 or goal.x >= str(rows[goal.y]).length():
 		return
 	if str(rows[goal.y]).substr(goal.x, 1) == "#":
 		return
+	pending_choices = false
+	action_scroll.visible = false
 	previous_tile_pos = tile_pos
 	tile_pos = goal
-	_refresh()
+	walking = true
+	_play_sfx("step")
+	if hero_overlay == null:
+		walking = false
+		_refresh()
+		return
+	var start: Vector2 = hero_overlay.position
+	var finish: Vector2 = start + Vector2(dx, dy) * float(cell_size)
+	var tween := create_tween()
+	tween.tween_property(hero_overlay, "position", finish, WALK_DURATION)
+	tween.tween_callback(func():
+		walking = false
+		_refresh()
+		call_deferred("_sync_hero_overlay")
+	)
 
 func _interact() -> void:
-	var point := _nearby_point()
-	if point.is_empty():
-		_show_message("風の音だけが聞こえる。")
+	if battle_active or walking:
 		return
+	_play_sfx("confirm")
+	pending_choices = not pending_choices
+	if pending_choices and _nearby_point().is_empty():
+		_show_message("風の音だけが聞こえる。")
 	_show_nearby_actions()
 
 func _perform(action: Dictionary) -> void:
+	_play_sfx("confirm")
+	pending_choices = false
+	action_scroll.visible = false
 	if not game.state.get("ending", "").is_empty():
 		return
 	if action.has("event"):
@@ -727,6 +798,7 @@ func _travel(destination: String) -> void:
 		_show_message("移動できない。")
 		return
 	location_id = destination
+	pending_choices = false
 	_play_music_for_location()
 	var spawn: Array = _map().get("spawn", [1, 1])
 	tile_pos = Vector2i(int(spawn[0]), int(spawn[1]))
@@ -760,6 +832,7 @@ func _begin_battle(enemy_id: String) -> void:
 		_show_message("戦闘できる仲間がいない。")
 		return
 	battle_active = true
+	pending_choices = false
 	_play_music("battle")
 	battle_enemy_id = enemy_id
 	battle_enemy_sprite.custom_minimum_size = Vector2(128, 148) if enemy_id == "darklord" else Vector2(92, 96)
@@ -812,8 +885,10 @@ func _play_attack_feedback() -> void:
 func _choose_battle(action: String) -> void:
 	if not battle_active:
 		return
+	_play_sfx("attack" if action != "guard" else "confirm")
 	var result: Dictionary = battle.choose(action)
 	if result.get("resolved", false):
+		_play_sfx("hit")
 		_play_attack_feedback()
 	if not result.get("ok", false):
 		return
@@ -841,6 +916,8 @@ func _save() -> void:
 	_show_message("セーブ完了。" if game.save_game(1) else "セーブ失敗。")
 
 func _load() -> void:
+	pending_choices = false
+	walking = false
 	if not game.load_game(1):
 		_show_message("セーブデータが見つからない。")
 		return
@@ -859,6 +936,8 @@ func _restore_location() -> void:
 		tile_pos = Vector2i(int(xy[0]), int(xy[1]))
 
 func _next_loop() -> void:
+	pending_choices = false
+	walking = false
 	if not game.begin_next_loop():
 		_show_message("エンディング到達後にだけ次周回へ進める。")
 		return
