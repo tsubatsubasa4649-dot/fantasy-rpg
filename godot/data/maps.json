@@ -1,0 +1,276 @@
+{
+  "schema_version": 1,
+  "maps": [
+    {
+      "id": "field",
+      "name": "始まりの村と草原",
+      "rows": [
+        "##########",
+        "#........#",
+        "#..H.....#",
+        "#........#",
+        "#........#",
+        "#........#",
+        "##########"
+      ],
+      "spawn": [
+        1,
+        4
+      ],
+      "travel": {
+        "to": "cave",
+        "at": [
+          8,
+          1
+        ],
+        "spawn": [
+          1,
+          5
+        ],
+        "cost_event": "travel_region"
+      },
+      "points": [
+        {
+          "id": "ricky",
+          "at": [
+            2,
+            4
+          ],
+          "label": "リッキー",
+          "image": "elder",
+          "dialogue": {
+            "1": "夜回りが足りない。手伝ってくれないか？",
+            "2": "橋の向こうが気がかりだ。",
+            "3": "村が消えても、約束は残る。"
+          },
+          "actions": [
+            {
+              "label": "夜回りを手伝う",
+              "event": "help_village"
+            },
+            {
+              "label": "リッキーを誘う",
+              "event": "recruit_ricky"
+            }
+          ]
+        },
+        {
+          "id": "meri",
+          "at": [
+            5,
+            2
+          ],
+          "label": "メリル",
+          "image": "elder",
+          "visible_when": {
+            "phase_is": 1
+          },
+          "dialogue": {
+            "1": "森の風が、秘密の場所を教えてくれる。"
+          },
+          "actions": [
+            {
+              "label": "森の手がかりを探す",
+              "event": "find_forest_clue"
+            },
+            {
+              "label": "メリルを誘う",
+              "event": "recruit_meri"
+            }
+          ]
+        },
+        {
+          "id": "goro",
+          "at": [
+            2,
+            2
+          ],
+          "label": "ゴロー",
+          "image": "elder",
+          "visible_when": {
+            "phase_gte": 2
+          },
+          "dialogue": {
+            "2": "逃げ遅れた人を助ける。",
+            "3": "まだ助けられる人がいる。"
+          },
+          "actions": [
+            {
+              "label": "避難民を助ける",
+              "event": "save_refugees"
+            },
+            {
+              "label": "ゴローを誘う",
+              "event": "recruit_goro"
+            }
+          ]
+        },
+        {
+          "id": "bridge",
+          "at": [
+            7,
+            4
+          ],
+          "label": "壊れた橋",
+          "image": "wall",
+          "visible_when": {
+            "phase_gte": 2
+          },
+          "dialogue": {
+            "2": "橋脚に隠された古い名簿がある。",
+            "3": "岸の向こうから声がする。"
+          },
+          "actions": [
+            {
+              "label": "橋を調査",
+              "event": "bridge_investigate"
+            },
+            {
+              "label": "メリルと和解の証拠を示す",
+              "event": "bridge_resolution"
+            },
+            {
+              "label": "橋の向こうED",
+              "ending": "ED_BRIDGE"
+            }
+          ]
+        },
+        {
+          "id": "inn",
+          "at": [
+            4,
+            2
+          ],
+          "label": "宿屋",
+          "image": "house",
+          "dialogue": {
+            "1": "一晩休んでいきなさい。",
+            "2": "難民が増えてきた。",
+            "3": "これが最後の灯りかもしれない。"
+          },
+          "actions": [
+            {
+              "label": "宿泊（+1日）",
+              "event": "rest_at_inn"
+            },
+            {
+              "label": "遠征（+10日）",
+              "event": "extended_expedition"
+            }
+          ]
+        },
+        {
+          "id": "cave_path",
+          "at": [
+            8,
+            1
+          ],
+          "label": "洞窟への道",
+          "image": "cave-entrance",
+          "dialogue": {
+            "1": "風鳴りの洞窟へ向かう。",
+            "2": "地面が揺れている。",
+            "3": "穴の向こうで何かが目覚めた。"
+          },
+          "actions": [
+            {
+              "label": "洞窟へ移動（+2日）",
+              "travel_to": "cave"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cave",
+      "name": "風鳴りの洞窟",
+      "rows": [
+        "##########",
+        "#........#",
+        "#..###...#",
+        "#........#",
+        "#........#",
+        "#........#",
+        "##########"
+      ],
+      "spawn": [
+        1,
+        5
+      ],
+      "travel": {
+        "to": "field",
+        "at": [
+          1,
+          5
+        ],
+        "spawn": [
+          7,
+          1
+        ],
+        "cost_event": "travel_region"
+      },
+      "points": [
+        {
+          "id": "slime",
+          "at": [
+            4,
+            4
+          ],
+          "label": "スライム",
+          "image": "slime",
+          "dialogue": {
+            "1": "ぬめる影が道を塞いでいる。",
+            "2": "濁った色のスライムが現れた。",
+            "3": "魔力を帯びたスライムが蠢く。"
+          },
+          "actions": [
+            {
+              "label": "スライムと戦う",
+              "battle": "slime"
+            }
+          ]
+        },
+        {
+          "id": "boss",
+          "at": [
+            7,
+            2
+          ],
+          "label": "魔王の影",
+          "image": "guardian",
+          "dialogue": {
+            "1": "まだ封印が解けていない。",
+            "2": "封印に亀裂が入っている。",
+            "3": "魔王の影が実体を得た。"
+          },
+          "actions": [
+            {
+              "label": "魔王の影と戦う",
+              "battle": "darklord"
+            }
+          ]
+        },
+        {
+          "id": "return",
+          "at": [
+            1,
+            5
+          ],
+          "label": "帰り道",
+          "image": "cave-entrance",
+          "dialogue": {
+            "1": "村へ戻ろう。",
+            "2": "村へ戻ろう。",
+            "3": "村へ戻ろう。"
+          },
+          "actions": [
+            {
+              "label": "草原へ移動（+2日）",
+              "travel_to": "field"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
