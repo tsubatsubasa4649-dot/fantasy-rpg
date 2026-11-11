@@ -1,0 +1,54 @@
+name: Build and publish Godot vertical slice
+
+on:
+  push:
+    paths:
+      - "godot/**"
+      - ".github/workflows/godot-web.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: godot-web
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.3.0
+          use-dotnet: false
+          include-templates: true
+
+      - name: Import Godot resources
+        run: godot --headless --path godot --import --quit
+
+      - name: Verify data-driven game and combat
+        run: |
+          godot --headless --path godot --script res://tests/test_phase2.gd
+          godot --headless --path godot --script res://tests/test_phase3.gd
+
+      - name: Export browser build
+        run: |
+          mkdir -p godot-play
+          godot --headless --path godot --export-release "Web" "$GITHUB_WORKSPACE/godot-play/index.html"
+          test -s godot-play/index.html
+
+      - name: Commit browser build without touching original HTML game
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add godot-play/
+          if ! git diff --staged --quiet; then
+            git commit -m "Build Godot vertical slice [skip ci]"
+            git push origin HEAD:main
+          fi
