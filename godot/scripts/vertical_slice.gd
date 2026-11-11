@@ -352,7 +352,7 @@ func _layout_ui() -> void:
 	map_frame.size = Vector2(w - margin * 2.0, map_h)
 	battle_panel.position = map_frame.position + Vector2(14, 20)
 	battle_panel.size = map_frame.size - Vector2(28, 40)
-	cell_size = mini(46, int((map_frame.size.x - 22.0) / 10.0), int((map_frame.size.y - 20.0) / 7.0))
+	cell_size = mini(46, mini(int((map_frame.size.x - 22.0) / 10.0), int((map_frame.size.y - 20.0) / 7.0)))
 	description_label.position = Vector2(margin + 3, map_frame.position.y + map_h + 3)
 	description_label.size = Vector2(w - margin * 2.0, 21)
 	dialogue_panel.position = Vector2(margin, description_label.position.y + 22)
@@ -388,6 +388,43 @@ func _toggle_menu() -> void:
 	management_panel.visible = not management_panel.visible
 	menu_button.text = "閉じる" if management_panel.visible else "メニュー"
 
+
+func _add_pad_gap(parent: GridContainer) -> void:
+	var gap := Control.new()
+	gap.custom_minimum_size = Vector2(94, 74)
+	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(gap)
+
+func _add_direction_button(parent: GridContainer, text_value: String, vector: Vector2i) -> Button:
+	var button := Button.new()
+	button.text = text_value
+	button.custom_minimum_size = Vector2(94, 74)
+	button.add_theme_font_size_override("font_size", 30)
+	_style_button(button)
+	button.button_down.connect(func(): _begin_hold(vector))
+	button.button_up.connect(_end_hold)
+	parent.add_child(button)
+	return button
+
+func _begin_hold(vector: Vector2i) -> void:
+	held_direction = vector
+	repeat_clock = FIRST_REPEAT_DELAY
+	_walk(vector.x, vector.y)
+
+func _end_hold() -> void:
+	held_direction = Vector2i.ZERO
+	repeat_clock = 0.0
+
+func _process(delta: float) -> void:
+	if held_direction == Vector2i.ZERO:
+		return
+	if battle_active or not game.state.get("ending", "").is_empty():
+		_end_hold()
+		return
+	repeat_clock -= delta
+	if repeat_clock <= 0.0:
+		_walk(held_direction.x, held_direction.y)
+		repeat_clock += REPEAT_INTERVAL
 
 func _battle_portrait(image_id: String) -> TextureRect:
 	var portrait := TextureRect.new()
