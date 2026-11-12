@@ -35,11 +35,15 @@ func _run() -> void:
 		var ground: Texture2D = ui.textures["ground"]
 		check(ground.get_width() < 32 and ground.get_height() < 32, "Ground padding was cropped away")
 	check(ui.map_grid.get_child_count() == 70, "Map builds 10x7 visible tiles")
-	check(ui.description_label.text.contains("草原"), "Field visible on startup")
+	check(ui.description_label.text.contains("ウィンドル"), "New Windle village visible on startup")
+	check(ui.tile_pos == Vector2i(4, 5), "Hero spawns at village entry rather than map edge")
+	var village: Dictionary = ui.game.registry.by_id("maps", "field")
+	check(village.get("points", []).size() >= 9, "Village includes NPCs and hidden-discovery points")
+	check(str(village.get("rows", [])[3]).contains("p"), "Village road exists in map data")
 	var walk_start: Vector2 = ui.hero_overlay.position
 	ui._walk(1, 0)
 	check(ui.walk_sprite_frame == 0, "First step pose appears immediately")
-	check(ui.tile_pos == Vector2i(2, 4), "Mobile movement updates logical tile")
+	check(ui.tile_pos == Vector2i(5, 5), "Mobile movement updates logical tile")
 	check(ui.hero_overlay.position.distance_to(walk_start) < 1.0, "Hero does not teleport to target on first input")
 	await create_timer(0.17).timeout
 	var halfway: float = ui.hero_overlay.position.distance_to(walk_start)
@@ -106,10 +110,10 @@ func _run() -> void:
 	var up: Button = pad.get_child(1)
 	check(up.custom_minimum_size.x >= 90 and up.custom_minimum_size.y >= 80, "Directional touch target is at least 90x80")
 	ui._begin_hold(Vector2i(1, 0))
-	check(ui.tile_pos == Vector2i(3, 4), "Holding direction moves immediately")
+	check(ui.tile_pos == Vector2i(6, 5), "Holding direction moves immediately")
 	await create_timer(0.48).timeout
 	ui._process(0.25)
-	check(ui.tile_pos == Vector2i(4, 4), "Held direction repeats movement")
+	check(ui.tile_pos == Vector2i(7, 5), "Held direction repeats movement")
 	await create_timer(0.48).timeout
 	ui._end_hold()
 	check(ui.held_direction == Vector2i.ZERO, "Releasing direction stops movement")
