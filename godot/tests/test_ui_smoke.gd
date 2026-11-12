@@ -1,4 +1,5 @@
 extends SceneTree
+const SpriteAnimation = preload("res://scripts/sprite_animation.gd")
 ## Verifies that the actual vertical-slice scene can be instantiated headlessly.
 var failures: int = 0
 
@@ -52,7 +53,7 @@ func _run() -> void:
 		check(profile.has("walk_animation"), "Companion walk spec can be extended: " + actor_id)
 		check(ui.character_walk_frames.has(actor_id), "Companion has an animation registry entry: " + actor_id)
 	var hero_visual: Dictionary = ui.game.registry.by_id("characters", "hero")
-	var hero_rect: Rect2 = ui.SpriteAnimation.field_rect(float(ui.cell_size), hero_visual)
+	var hero_rect: Rect2 = SpriteAnimation.field_rect(float(ui.cell_size), hero_visual)
 	check(hero_rect.size.x > float(ui.cell_size), "Hero larger than one tile without moving its feet")
 	check(hero_rect.position.y < 0.0, "Hero grows upward instead of shifting feet")
 	check(absf(ui.hero_overlay.size.x - hero_rect.size.x) < 1.0, "Hero portrait uses data-driven enlarged size")
