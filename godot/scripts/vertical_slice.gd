@@ -1050,7 +1050,7 @@ func _restore_location() -> void:
 	var place: String = str(game.state.get("scene_map", "field"))
 	if not game.registry.by_id("maps", place).is_empty():
 		location_id = place
-	var xy: Array = game.state.get("scene_xy", [1, 4])
+	var xy: Array = game.state.get("scene_xy", _map().get("spawn", [4, 5]))
 	if xy.size() >= 2:
 		tile_pos = Vector2i(int(xy[0]), int(xy[1]))
 
