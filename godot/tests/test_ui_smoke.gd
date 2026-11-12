@@ -24,6 +24,10 @@ func _run() -> void:
 	check(ui.game.registry.records("maps").size() == 3, "Scene initializes village, overworld and cave")
 	check(ui.textures.size() >= 16, "Original eight images plus eight unique party sprites decode")
 	check(ui.textures.has("ricky_field") and ui.textures.has("meri_battle") and ui.textures.has("goro_battle"), "Three companion sprites are available in both game modes")
+	for world_art_id in ["world_sea", "world_grass", "world_forest", "world_mountain", "world_road"]:
+		check(ui.textures.has(world_art_id), "Generated overworld terrain atlas has " + world_art_id)
+		if ui.textures.has(world_art_id):
+			check(ui.textures[world_art_id] is AtlasTexture, "Terrain is cut from image art, not a generated fill: " + world_art_id)
 	check(ui.theme != null and ui.theme.default_font != null, "Imported Japanese font resource is loaded")
 	check(ThemeDB.fallback_font == ui.theme.default_font, "Global UI fallback matches bundled Japanese font")
 	if ui.theme != null and ui.theme.default_font != null:
@@ -41,6 +45,14 @@ func _run() -> void:
 	ui._refresh()
 	check(ui._current_rows().size() == 24, "World map data exceeds viewport height")
 	check(ui.map_grid.get_child_count() == 960, "World tiles stay cached for pixel-smooth scrolling")
+	var world_rows: Array = ui._current_rows()
+	var sample_x: int = 0
+	var sample_y: int = 0
+	var expected_world_art: Dictionary = {"~": "world_sea", ".": "world_grass", "f": "world_forest", "#": "world_mountain", "p": "world_road"}
+	var sampled_symbol: String = str(world_rows[sample_y]).substr(sample_x, 1)
+	if expected_world_art.has(sampled_symbol):
+		var sample_cell: TextureRect = ui.map_grid.get_child(sample_y * 40 + sample_x)
+		check(sample_cell.texture == ui.textures[expected_world_art[sampled_symbol]], "World displays real generated terrain texture rather than tinted village ground")
 	check(ui._camera_origin().x > 0 and ui._camera_origin().y > 0, "Overworld camera follows hero away from origin")
 	var old_camera: Vector2i = ui._camera_origin()
 	ui.tile_pos = Vector2i(30, 16)
