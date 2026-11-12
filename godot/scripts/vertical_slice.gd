@@ -778,13 +778,17 @@ func _draw_map() -> void:
 	var map_data: Dictionary = _map()
 	var is_world: bool = location_id == "world_map"
 	var point_art: Dictionary = {}
+	var point_markers: Dictionary = {}
 	for point in map_data.get("points", []):
 		if not _point_visible(point):
 			continue
 		var spot: Array = point.get("at", [])
 		if spot.size() != 2:
 			continue
-		point_art[Vector2i(int(spot[0]), int(spot[1]))] = str(point.get("image", ""))
+		var key := Vector2i(int(spot[0]), int(spot[1]))
+		point_art[key] = str(point.get("image", ""))
+		if not str(point.get("marker_text", "")).is_empty():
+			point_markers[key] = point
 	for y in range(rows.size()):
 		for x in range(row_width):
 			var cell := TextureRect.new()
@@ -809,6 +813,17 @@ func _draw_map() -> void:
 				cell.modulate = Color("#a5a9ac")
 			map_grid.add_child(cell)
 			var sprite_id: String = "house" if symbol == "H" else str(point_art.get(Vector2i(x, y), ""))
+			var marker: Dictionary = point_markers.get(Vector2i(x, y), {})
+			if not marker.is_empty():
+				var sign_label := Label.new()
+				sign_label.text = str(marker.get("marker_text", ""))
+				sign_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				sign_label.add_theme_font_size_override("font_size", 13)
+				sign_label.add_theme_color_override("font_color", Color(str(marker.get("marker_color", "#fff4bb"))))
+				sign_label.position = Vector2(-4, -16)
+				sign_label.custom_minimum_size = Vector2(cell_size + 8, 18)
+				sign_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				cell.add_child(sign_label)
 			if sprite_id.is_empty():
 				continue
 			var sprite := TextureRect.new()
