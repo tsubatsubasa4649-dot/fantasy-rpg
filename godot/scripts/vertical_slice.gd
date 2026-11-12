@@ -4,7 +4,7 @@ const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const SpriteAnimation = preload("res://scripts/sprite_animation.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG CAMERA-17 / SMOOTH FOLLOW"
+const BUILD_ID := "RPG TILES-18 / GENERATED TERRAIN"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -202,6 +202,27 @@ func _load_art() -> void:
 		textures[id] = ImageTexture.create_from_image(image)
 	_load_party_atlas()
 	_load_walk_frames()
+	_load_world_tiles()
+
+func _load_world_tiles() -> void:
+	# Five actual image-generated terrain samples, cropped from original artwork:
+	# sea, grass, forest, mountain, road. Each 24x24 in a 120x24 strip.
+	var path: String = "res://assets/world_tiles.b64"
+	if not FileAccess.file_exists(path):
+		push_warning("World tile art atlas missing; fallback textures remain")
+		return
+	var image := Image.new()
+	var bytes: PackedByteArray = Marshalls.base64_to_raw(FileAccess.get_file_as_string(path).strip_edges())
+	if image.load_png_from_buffer(bytes) != OK or image.get_width() != 120 or image.get_height() != 24:
+		push_warning("Generated world tile atlas invalid")
+		return
+	var atlas: Texture2D = ImageTexture.create_from_image(image)
+	var ids: Array[String] = ["world_sea", "world_grass", "world_forest", "world_mountain", "world_road"]
+	for index in range(ids.size()):
+		var tile := AtlasTexture.new()
+		tile.atlas = atlas
+		tile.region = Rect2(index * 24, 0, 24, 24)
+		textures[ids[index]] = tile
 
 func _character_profile(character_id: String) -> Dictionary:
 	return game.registry.by_id("characters", character_id)
@@ -384,7 +405,7 @@ func _build_ui() -> void:
 	hud_panel.add_child(hud_title)
 
 	build_label = Label.new()
-	build_label.text = "CAMERA-17"
+	build_label.text = "TILES-18"
 	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	build_label.add_theme_font_size_override("font_size", 11)
 	build_label.add_theme_color_override("font_color", Color("#9fb5d8"))
@@ -797,20 +818,19 @@ func _draw_map() -> void:
 			cell.stretch_mode = TextureRect.STRETCH_SCALE
 			var symbol: String = str(rows[y]).substr(x, 1)
 			var art_id: String = "wall" if symbol == "#" else "ground"
+			if is_world:
+				var world_art: Dictionary = {"~": "world_sea", ".": "world_grass", "f": "world_forest", "#": "world_mountain", "p": "world_road"}
+				art_id = str(world_art.get(symbol, "world_grass"))
 			if textures.has(art_id):
 				cell.texture = textures[art_id]
-			# Existing generated art with separate location tints; proper
-			# terrain art will be created in a later pass.
-			if symbol == "p":
-				cell.modulate = Color("#caa06c")
-			elif symbol == "f":
-				cell.modulate = Color("#467a4e")
-			elif symbol == "~":
-				cell.modulate = Color("#285a97")
-			elif symbol == "s":
-				cell.modulate = Color("#b7a47a")
-			elif symbol == "#" and is_world:
-				cell.modulate = Color("#a5a9ac")
+			elif textures.has("ground"):
+				cell.texture = textures["ground"]
+			# Village terrain retains the former region accents.
+			if not is_world:
+				if symbol == "p":
+					cell.modulate = Color("#caa06c")
+				elif symbol == "s":
+					cell.modulate = Color("#b7a47a")
 			map_grid.add_child(cell)
 			var sprite_id: String = "house" if symbol == "H" else str(point_art.get(Vector2i(x, y), ""))
 			var marker: Dictionary = point_markers.get(Vector2i(x, y), {})
