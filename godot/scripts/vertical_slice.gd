@@ -4,7 +4,7 @@ const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const SpriteAnimation = preload("res://scripts/sprite_animation.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG SCALE-14 / PARTY UI"
+const BUILD_ID := "RPG VILLAGE-15 / WINDLE"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -379,7 +379,7 @@ func _build_ui() -> void:
 	hud_panel.add_child(hud_title)
 
 	build_label = Label.new()
-	build_label.text = "SCALE-14"
+	build_label.text = "VILLAGE-15"
 	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	build_label.add_theme_font_size_override("font_size", 11)
 	build_label.add_theme_color_override("font_color", Color("#9fb5d8"))
@@ -743,6 +743,12 @@ func _draw_map() -> void:
 			var art_id: String = "wall" if symbol == "#" else "ground"
 			if textures.has(art_id):
 				cell.texture = textures[art_id]
+			# Different lighting of existing authored ground art marks worn village paths;
+			# no programmatically generated illustration is used.
+			if symbol == "p":
+				cell.modulate = Color("#c9a482")
+			elif symbol == "s":
+				cell.modulate = Color("#7c9d66")
 			map_grid.add_child(cell)
 			var sprite_id: String = ""
 			if symbol == "H":
@@ -788,16 +794,24 @@ func _point_visible(point: Dictionary) -> bool:
 
 func _nearby_point() -> Dictionary:
 	var map_data: Dictionary = _map()
+	var closest: Dictionary = {}
+	var best_priority: int = 100
+	var look_at: Vector2i = tile_pos + facing
 	for point in map_data.get("points", []):
 		if not _point_visible(point):
 			continue
 		var xy: Array = point.get("at", [])
 		if xy.size() < 2:
 			continue
-		var distance: int = abs(int(xy[0]) - tile_pos.x) + abs(int(xy[1]) - tile_pos.y)
-		if distance <= 1:
-			return point
-	return {}
+		var spot := Vector2i(int(xy[0]), int(xy[1]))
+		var distance: int = absi(spot.x - tile_pos.x) + absi(spot.y - tile_pos.y)
+		if distance > 1:
+			continue
+		var priority: int = 0 if spot == look_at else (1 if spot == tile_pos else 2)
+		if priority < best_priority:
+			closest = point
+			best_priority = priority
+	return closest
 
 func _show_nearby_actions() -> void:
 	for node in action_list.get_children():
@@ -832,7 +846,7 @@ func _walk(dx: int, dy: int) -> void:
 	var rows: Array = _current_rows()
 	if goal.y < 0 or goal.y >= rows.size() or goal.x < 0 or goal.x >= str(rows[goal.y]).length():
 		return
-	if str(rows[goal.y]).substr(goal.x, 1) == "#":
+	if str(rows[goal.y]).substr(goal.x, 1) in ["#", "H"]:
 		return
 	pending_choices = false
 	action_scroll.visible = false
@@ -882,6 +896,8 @@ func _perform(action: Dictionary) -> void:
 		_begin_battle(str(action["battle"]))
 	elif action.has("travel_to"):
 		_travel(str(action["travel_to"]))
+	elif action.has("message"):
+		_show_message(str(action.get("message", "")))
 	elif action.has("ending"):
 		var ending_id: String = str(action["ending"])
 		if game.finish(ending_id):
@@ -1044,7 +1060,8 @@ func _next_loop() -> void:
 		return
 	location_id = "field"
 	_play_music_for_location()
-	tile_pos = Vector2i(1, 4)
+	var restart_xy: Array = _map().get("spawn", [4, 5])
+	tile_pos = Vector2i(int(restart_xy[0]), int(restart_xy[1]))
 	battle_active = false
 	_show_message("次の旅が始まった。実績だけが残っている。")
 	_refresh()
