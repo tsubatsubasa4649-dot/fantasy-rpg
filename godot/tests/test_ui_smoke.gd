@@ -50,6 +50,18 @@ func _run() -> void:
 	var world_cached_tile: Control = ui.map_grid.get_child(123)
 	ui._draw_map()
 	check(ui.map_grid.get_child(123) == world_cached_tile, "World scrolling does not destroy and recreate tiles")
+	ui.tile_pos = Vector2i(12, 14)
+	ui._refresh()
+	await process_frame
+	var grid_before: Vector2 = ui.map_grid.position
+	var grid_target: Vector2 = ui._camera_grid_position(Vector2i(13, 14))
+	check(grid_before.distance_to(grid_target) > 5.0, "Overworld has a non-zero camera pan to next tile")
+	ui._walk(1, 0)
+	await create_timer(0.14).timeout
+	var pan_distance: float = ui.map_grid.position.distance_to(grid_before)
+	check(pan_distance > 2.0 and pan_distance < grid_before.distance_to(grid_target) - 2.0, "Camera moves smoothly through intermediate pixel offsets")
+	await create_timer(0.25).timeout
+	check(ui.map_grid.get_child(123) == world_cached_tile, "Camera pan retains generated tile nodes")
 	ui._travel("cave", [1, 5])
 	check(ui.location_id == "cave" and ui.tile_pos == Vector2i(1, 5), "World to cave travel uses destination spawn")
 	ui._travel("world_map", [30, 7])
@@ -57,6 +69,8 @@ func _run() -> void:
 	ui.location_id = initial_location
 	ui.tile_pos = Vector2i(4, 5)
 	ui._refresh()
+	await process_frame
+	await process_frame
 
 	check(ui.description_label.text.contains("ウィンドル"), "New Windle village visible on startup")
 	check(ui.tile_pos == Vector2i(4, 5), "Hero spawns at village entry rather than map edge")
