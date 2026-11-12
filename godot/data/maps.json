@@ -181,7 +181,9 @@
                 14
               ]
             }
-          ]
+          ],
+          "marker_text": "世界へ",
+          "marker_color": "#fff4bb"
         },
         {
           "id": "village_sign",
