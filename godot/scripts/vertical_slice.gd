@@ -566,6 +566,8 @@ func _layout_ui() -> void:
 	battle_panel.position = map_frame.position + Vector2(14, 20)
 	battle_panel.size = map_frame.size - Vector2(28, 40)
 	cell_size = mini(46, mini(int((map_frame.size.x - 22.0) / 10.0), int((map_frame.size.y - 20.0) / 7.0)))
+	if hero_overlay != null:
+		hero_overlay.size = SpriteAnimation.field_rect(float(cell_size), _character_profile("hero")).size
 	description_label.position = Vector2(margin + 3, map_frame.position.y + map_h + 3)
 	description_label.size = Vector2(w - margin * 2.0, 21)
 	dialogue_panel.position = Vector2(margin, description_label.position.y + 22)
