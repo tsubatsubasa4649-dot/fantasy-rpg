@@ -46,6 +46,16 @@ func _run() -> void:
 	check(ui.walking, "Movement remains animated after logical grid step")
 	check(ui.hero_overlay != null and ui.hero_overlay.texture != null, "Hero is persistent independent of terrain tiles")
 	check(ui.walk_textures.size() == 4, "Walking animation has all four directions")
+	check(ui.character_walk_frames.size() == 4, "Walking loader handles all four character profiles")
+	for actor_id in ["ch_ricky", "ch_meri", "ch_goro"]:
+		var profile: Dictionary = ui.game.registry.by_id("characters", actor_id)
+		check(profile.has("walk_animation"), "Companion walk spec can be extended: " + actor_id)
+		check(ui.character_walk_frames.has(actor_id), "Companion has an animation registry entry: " + actor_id)
+	var hero_visual: Dictionary = ui.game.registry.by_id("characters", "hero")
+	var hero_rect: Rect2 = ui.SpriteAnimation.field_rect(float(ui.cell_size), hero_visual)
+	check(hero_rect.size.x > float(ui.cell_size), "Hero larger than one tile without moving its feet")
+	check(hero_rect.position.y < 0.0, "Hero grows upward instead of shifting feet")
+	check(absf(ui.hero_overlay.size.x - hero_rect.size.x) < 1.0, "Hero portrait uses data-driven enlarged size")
 	for direction in range(4):
 		check(ui.walk_textures[direction].size() == 3, "Direction " + str(direction) + " has idle and two steps")
 		for frame in range(3):
@@ -122,6 +132,8 @@ func _run() -> void:
 	check(ui.battle_enemy_sprite.custom_minimum_size.x <= 100, "Slime no longer dominates battle width")
 	check(hero_portrait.custom_minimum_size.y >= 72, "Human combat actor has a larger silhouette than exploration sprite")
 	check(ui.game.registry.by_id("characters", "ch_meri").has("battle_sprite_id"), "Character battle artwork is data-driven")
+	for hero_avatar in ui.battle_party_visual.get_children():
+		check(hero_avatar is VBoxContainer, "Combat actors retain compact layout")
 	ui._choose_battle("skill")
 	check(ui.battle.round_number == 2, "One turn command resolves")
 	ui.battle_active = false
