@@ -20,7 +20,14 @@ func _test() -> void:
 	if session.registry.errors.size() > 0:
 		quit(1)
 		return
-	verify(session.registry.records("maps").size() == 2, "Field + cave")
+	verify(session.registry.records("maps").size() == 3, "Village, overworld, and cave all load")
+	var world_map: Dictionary = session.registry.by_id("maps", "world_map")
+	verify(world_map.get("rows", []).size() == 24, "Overworld is twenty-four rows tall")
+	verify(str(world_map.get("rows", [""])[0]).length() == 40, "Overworld is forty tiles wide")
+	verify(world_map.get("points", []).size() >= 6, "Overworld has discoverable destinations")
+	verify(str(world_map.get("rows", []).join("")).contains("~"), "World has impassable coastline")
+	verify(str(world_map.get("rows", []).join("")).contains("f"), "World has forest regions")
+	verify(str(world_map.get("rows", []).join("")).contains("p"), "World has branching roads")
 	var battle_defs: Dictionary = session.registry.collections["battles"]
 	verify(battle_defs.get("enemies", []).size() == 2, "Normal enemy + boss")
 	verify(session.run_event("help_village"), "Village helper event")
