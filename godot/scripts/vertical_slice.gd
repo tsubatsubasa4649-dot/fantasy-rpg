@@ -405,6 +405,7 @@ func _build_ui() -> void:
 
 	map_frame = Panel.new()
 	map_frame.add_theme_stylebox_override("panel", _panel_style(Color("#101f30"), Color("#9caec3")))
+	map_frame.clip_contents = true
 	root_column.add_child(map_frame)
 	map_center = Control.new()
 	map_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
