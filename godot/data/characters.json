@@ -11,7 +11,30 @@
       },
       "field_sprite_id": "hero_field",
       "battle_sprite_id": "hero_battle",
-      "sprite_profile_id": "hero"
+      "sprite_profile_id": "hero",
+      "visual": {
+        "field_scale": 1.22,
+        "foot_offset_y": -2,
+        "battle_scale": 1.02,
+        "field_anchor": "feet",
+        "battle_anchor": "feet"
+      },
+      "walk_animation": {
+        "type": "sheet",
+        "source": "res://assets/hero_walk.b64",
+        "columns": 3,
+        "rows": 4,
+        "frame_width": 48,
+        "frame_height": 56,
+        "order": [
+          "down",
+          "left",
+          "right",
+          "up"
+        ],
+        "idle_frame": 1,
+        "frames_per_step": 3
+      }
     },
     {
       "id": "ch_ricky",
@@ -37,7 +60,30 @@
       ],
       "field_sprite_id": "ricky_field",
       "battle_sprite_id": "ricky_battle",
-      "sprite_profile_id": "ch_ricky"
+      "sprite_profile_id": "ch_ricky",
+      "visual": {
+        "field_scale": 1.17,
+        "foot_offset_y": -1,
+        "battle_scale": 1.04,
+        "field_anchor": "feet",
+        "battle_anchor": "feet"
+      },
+      "walk_animation": {
+        "type": "static",
+        "source": "",
+        "columns": 3,
+        "rows": 4,
+        "frame_width": 48,
+        "frame_height": 56,
+        "order": [
+          "down",
+          "left",
+          "right",
+          "up"
+        ],
+        "idle_frame": 1,
+        "frames_per_step": 3
+      }
     },
     {
       "id": "ch_meri",
@@ -63,7 +109,30 @@
       ],
       "field_sprite_id": "meri_field",
       "battle_sprite_id": "meri_battle",
-      "sprite_profile_id": "ch_meri"
+      "sprite_profile_id": "ch_meri",
+      "visual": {
+        "field_scale": 1.15,
+        "foot_offset_y": -1,
+        "battle_scale": 1,
+        "field_anchor": "feet",
+        "battle_anchor": "feet"
+      },
+      "walk_animation": {
+        "type": "static",
+        "source": "",
+        "columns": 3,
+        "rows": 4,
+        "frame_width": 48,
+        "frame_height": 56,
+        "order": [
+          "down",
+          "left",
+          "right",
+          "up"
+        ],
+        "idle_frame": 1,
+        "frames_per_step": 3
+      }
     },
     {
       "id": "ch_goro",
@@ -89,7 +158,30 @@
       ],
       "field_sprite_id": "goro_field",
       "battle_sprite_id": "goro_battle",
-      "sprite_profile_id": "ch_goro"
+      "sprite_profile_id": "ch_goro",
+      "visual": {
+        "field_scale": 1.21,
+        "foot_offset_y": -2,
+        "battle_scale": 1.08,
+        "field_anchor": "feet",
+        "battle_anchor": "feet"
+      },
+      "walk_animation": {
+        "type": "static",
+        "source": "",
+        "columns": 3,
+        "rows": 4,
+        "frame_width": 48,
+        "frame_height": 56,
+        "order": [
+          "down",
+          "left",
+          "right",
+          "up"
+        ],
+        "idle_frame": 1,
+        "frames_per_step": 3
+      }
     }
   ]
 }
