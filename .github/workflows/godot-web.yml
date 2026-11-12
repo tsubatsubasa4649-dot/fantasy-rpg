@@ -80,7 +80,16 @@ jobs:
           git add godot-play/
           if ! git diff --staged --quiet; then
             git commit -m "Build Godot vertical slice [skip ci]"
-            git fetch origin main
-            git rebase origin/main
-            git push origin HEAD:main
+            # Other documentation/source commits can land while Godot exports.
+            # Always rebase onto current main and retry the push without forcing.
+            for attempt in 1 2 3 4 5; do
+              git fetch origin main
+              git rebase origin/main
+              if git push origin HEAD:main; then
+                exit 0
+              fi
+              sleep 3
+            done
+            echo "Could not publish built Web files after five attempts."
+            exit 1
           fi
