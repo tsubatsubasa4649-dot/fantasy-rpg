@@ -458,7 +458,7 @@ func _build_ui() -> void:
 	root_column.add_child(dialogue_panel)
 	message_label = Label.new()
 	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	message_label.add_theme_font_size_override("font_size", 18)
+	message_label.add_theme_font_size_override("font_size", 17)
 	message_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	message_label.offset_left = 13
 	message_label.offset_right = -13
@@ -542,9 +542,9 @@ func _layout_ui() -> void:
 	var h: float = screen.y
 	var margin: float = 12.0
 	var header_h: float = clampf(h * 0.075, 65, 78)
-	var map_h: float = clampf(h * 0.335, 220, 330)
-	var dialogue_h: float = clampf(h * 0.085, 65, 85)
-	var actions_h: float = clampf(h * 0.148, 100, 140)
+	var map_h: float = clampf(h * 0.36, 230, 355)
+	var dialogue_h: float = clampf(h * 0.082, 64, 82)
+	var actions_h: float = clampf(h * 0.12, 100, 112)
 	var bottom_h: float = h - header_h - map_h - dialogue_h - actions_h - 50.0
 	# Compact screen fallback: shrink the map before shrinking controls.
 	if bottom_h < 214.0:
@@ -574,7 +574,7 @@ func _layout_ui() -> void:
 	action_scroll.size = Vector2(w - margin * 2.0, actions_h)
 	var control_y: float = action_scroll.position.y + actions_h + 5
 	var available: float = maxf(170.0, h - control_y - 9)
-	var pad_h: float = clampf((available - 10) / 3.0, 55, 81)
+	var pad_h: float = clampf((available - 10) / 3.0, 59, 81)
 	var pad_w: float = clampf((w - 160) / 3.0, 72, 105)
 	button_size = Vector2(pad_w, pad_h)
 	var pad: GridContainer = direction_controls.get_child(0)
@@ -816,7 +816,7 @@ func _show_nearby_actions() -> void:
 	for action in point.get("actions", []):
 		var entry: Dictionary = action
 		var option := _add_button(action_list, str(entry.get("label", "進む")), func(): _perform(entry))
-		option.custom_minimum_size.y = 56
+		option.custom_minimum_size.y = 53
 
 func _walk(dx: int, dy: int) -> void:
 	if walking or battle_active or not game.state.get("ending", "").is_empty():
