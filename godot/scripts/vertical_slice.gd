@@ -4,7 +4,7 @@ const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const SpriteAnimation = preload("res://scripts/sprite_animation.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG VILLAGE-15 / WINDLE"
+const BUILD_ID := "RPG WORLD-16 / OPEN CONTINENT"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -39,6 +39,8 @@ var management_panel: HBoxContainer
 var combat_controls: HBoxContainer
 var screen_mode: String = "explore"
 var cell_size: int = 44
+const CAMERA_COLS: int = 10
+const CAMERA_ROWS: int = 7
 var button_size: Vector2 = Vector2(94, 74)
 var last_point_id: String = ""
 var last_phase: int = 0
@@ -379,7 +381,7 @@ func _build_ui() -> void:
 	hud_panel.add_child(hud_title)
 
 	build_label = Label.new()
-	build_label.text = "VILLAGE-15"
+	build_label.text = "WORLD-16"
 	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	build_label.add_theme_font_size_override("font_size", 11)
 	build_label.add_theme_color_override("font_color", Color("#9fb5d8"))
@@ -694,6 +696,8 @@ func _refresh() -> void:
 	]
 	var map_data: Dictionary = _map()
 	description_label.text = str(map_data.get("name", "")) + ("　｜地面が裂けている…" if int(game.state.get("phase", 1)) >= 3 else "")
+	if location_id == "world_map":
+		description_label.text = "世界地図　%s　(%d, %d)" % [_current_phase_name(), tile_pos.x, tile_pos.y]
 	var nearby: Dictionary = _nearby_point()
 	if not nearby.is_empty():
 		description_label.text += "　｜近く：" + str(nearby.get("label", ""))
@@ -711,14 +715,25 @@ func _refresh() -> void:
 			_end_hold()
 		_show_nearby_actions()
 
-func _hero_cell_position(point: Vector2i) -> Vector2:
+func _camera_origin() -> Vector2i:
 	var rows: Array = _current_rows()
-	var width: int = str(rows[0]).length() if not rows.is_empty() else 10
-	var index: int = point.y * width + point.x
-	if index >= 0 and index < map_grid.get_child_count():
+	if rows.is_empty():
+		return Vector2i.ZERO
+	var actor: Vector2i = previous_tile_pos if walking else tile_pos
+	var width: int = str(rows[0]).length()
+	var height: int = rows.size()
+	return Vector2i(
+		clampi(actor.x - CAMERA_COLS / 2, 0, maxi(0, width - CAMERA_COLS)),
+		clampi(actor.y - CAMERA_ROWS / 2, 0, maxi(0, height - CAMERA_ROWS))
+	)
+
+func _hero_cell_position(point: Vector2i) -> Vector2:
+	var local_point: Vector2i = point - _camera_origin()
+	var index: int = local_point.y * CAMERA_COLS + local_point.x
+	if local_point.x >= 0 and local_point.x < CAMERA_COLS and local_point.y >= 0 and local_point.y < CAMERA_ROWS and index < map_grid.get_child_count():
 		var cell: Control = map_grid.get_child(index)
 		return map_center.position + map_grid.position + cell.position
-	return map_center.position + map_grid.position + Vector2(point.x, point.y) * float(cell_size)
+	return map_center.position + map_grid.position + Vector2(local_point.x, local_point.y) * float(cell_size)
 
 func _sync_hero_overlay() -> void:
 	if hero_overlay == null or map_grid.get_child_count() == 0 or walking:
@@ -727,8 +742,7 @@ func _sync_hero_overlay() -> void:
 	hero_overlay.size = actor_rect.size
 	hero_overlay.position = _hero_cell_position(tile_pos) + actor_rect.position
 	walk_sprite_direction = _face_row(facing)
-	if not walking:
-		_set_hero_walk_frame(1)
+	_set_hero_walk_frame(1)
 
 func _draw_map() -> void:
 	for item in map_grid.get_children():
@@ -736,22 +750,34 @@ func _draw_map() -> void:
 		item.queue_free()
 	var map_data: Dictionary = _map()
 	var rows: Array = _current_rows()
-	for y in range(rows.size()):
-		for x in range(str(rows[y]).length()):
+	var origin: Vector2i = _camera_origin()
+	var is_world: bool = location_id == "world_map"
+	for screen_y in range(CAMERA_ROWS):
+		for screen_x in range(CAMERA_COLS):
+			var x: int = origin.x + screen_x
+			var y: int = origin.y + screen_y
 			var cell := TextureRect.new()
 			cell.custom_minimum_size = Vector2(cell_size, cell_size)
 			cell.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			cell.stretch_mode = TextureRect.STRETCH_SCALE
-			var symbol: String = str(rows[y]).substr(x, 1)
+			var symbol: String = "~"
+			if y >= 0 and y < rows.size() and x >= 0 and x < str(rows[y]).length():
+				symbol = str(rows[y]).substr(x, 1)
 			var art_id: String = "wall" if symbol == "#" else "ground"
 			if textures.has(art_id):
 				cell.texture = textures[art_id]
-			# Different lighting of existing authored ground art marks worn village paths;
-			# no programmatically generated illustration is used.
+			# Reuse existing commissioned artwork with restrained terrain tints
+			# until the independent generated overworld tile set is complete.
 			if symbol == "p":
-				cell.modulate = Color("#c9a482")
+				cell.modulate = Color("#caa06c")
+			elif symbol == "f":
+				cell.modulate = Color("#467a4e")
+			elif symbol == "~":
+				cell.modulate = Color("#285a97")
 			elif symbol == "s":
-				cell.modulate = Color("#7c9d66")
+				cell.modulate = Color("#b7a47a")
+			elif symbol == "#":
+				cell.modulate = Color("#a5a9ac") if is_world else Color.WHITE
 			map_grid.add_child(cell)
 			var sprite_id: String = ""
 			if symbol == "H":
@@ -788,7 +814,6 @@ func _draw_map() -> void:
 				else:
 					sprite.size = Vector2(cell_size, cell_size)
 				cell.add_child(sprite)
-
 	if not walking:
 		call_deferred("_sync_hero_overlay")
 
@@ -851,7 +876,7 @@ func _walk(dx: int, dy: int) -> void:
 	var rows: Array = _current_rows()
 	if goal.y < 0 or goal.y >= rows.size() or goal.x < 0 or goal.x >= str(rows[goal.y]).length():
 		return
-	if str(rows[goal.y]).substr(goal.x, 1) in ["#", "H"]:
+	if str(rows[goal.y]).substr(goal.x, 1) in ["#", "H", "~"]:
 		return
 	pending_choices = false
 	action_scroll.visible = false
@@ -900,7 +925,7 @@ func _perform(action: Dictionary) -> void:
 	elif action.has("battle"):
 		_begin_battle(str(action["battle"]))
 	elif action.has("travel_to"):
-		_travel(str(action["travel_to"]))
+		_travel(str(action["travel_to"]), action.get("spawn", []))
 	elif action.has("message"):
 		_show_message(str(action.get("message", "")))
 	elif action.has("ending"):
@@ -911,17 +936,19 @@ func _perform(action: Dictionary) -> void:
 			_show_message("結末への条件がまだ揃っていない。")
 	_refresh()
 
-func _travel(destination: String) -> void:
+func _travel(destination: String, requested_spawn: Array = []) -> void:
 	if game.registry.by_id("maps", destination).is_empty():
 		return
 	if not game.run_event("travel_region"):
 		_show_message("移動できない。")
 		return
 	location_id = destination
+	previous_tile_pos = tile_pos
 	pending_choices = false
 	_play_music_for_location()
-	var spawn: Array = _map().get("spawn", [1, 1])
+	var spawn: Array = requested_spawn if requested_spawn.size() == 2 else _map().get("spawn", [1, 1])
 	tile_pos = Vector2i(int(spawn[0]), int(spawn[1]))
+	previous_tile_pos = tile_pos
 	_show_message(str(_map().get("name", "")) + "に到着。世界が2日進んだ。")
 
 func _auto_party() -> void:
