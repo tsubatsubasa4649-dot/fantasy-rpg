@@ -823,6 +823,7 @@ func _draw_map() -> void:
 				sign_label.position = Vector2(-4, -16)
 				sign_label.custom_minimum_size = Vector2(cell_size + 8, 18)
 				sign_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				sign_label.z_index = 1
 				cell.add_child(sign_label)
 			if sprite_id.is_empty():
 				continue
