@@ -831,6 +831,8 @@ func _show_nearby_actions() -> void:
 	_show_message(str(point.get("label", "")) + "「" + str(dialogue.get(phase, "……")) + "」")
 	for action in point.get("actions", []):
 		var entry: Dictionary = action
+		if not game.can(entry.get("when", {"always": true})):
+			continue
 		var option := _add_button(action_list, str(entry.get("label", "進む")), func(): _perform(entry))
 		option.custom_minimum_size.y = 53
 
@@ -889,9 +891,9 @@ func _perform(action: Dictionary) -> void:
 	if action.has("event"):
 		var event_id: String = str(action["event"])
 		if game.run_event(event_id):
-			_show_message("イベントが進行した：" + event_id)
+			_show_message(str(action.get("success_message", "イベントが進行した：" + event_id)))
 		else:
-			_show_message("今はそのイベントを進められない。加入条件・時期・編成を確認しよう。")
+			_show_message(str(action.get("fail_message", "今はそのイベントを進められない。加入条件・時期・編成を確認しよう。")))
 	elif action.has("battle"):
 		_begin_battle(str(action["battle"]))
 	elif action.has("travel_to"):
