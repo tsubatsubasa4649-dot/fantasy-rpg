@@ -4,7 +4,7 @@ const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const SpriteAnimation = preload("res://scripts/sprite_animation.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG WORLD-16 / OPEN CONTINENT"
+const BUILD_ID := "RPG CAMERA-17 / SMOOTH FOLLOW"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -31,7 +31,7 @@ var hud_title: Label
 var build_label: Label
 var battle_backdrop: Panel
 var map_frame: Panel
-var map_center: CenterContainer
+var map_center: Control
 var dialogue_panel: Panel
 var action_scroll: ScrollContainer
 var menu_button: Button
@@ -63,6 +63,9 @@ var walk_sprite_frame: int = 1
 var walk_textures: Array = []
 var character_walk_frames: Dictionary = {}
 var last_map_scene: String = ""
+var last_map_phase: int = 0
+var last_map_cell_size: int = 0
+var rendered_tile_count: int = 0
 var held_direction: Vector2i = Vector2i.ZERO
 var repeat_clock: float = 0.0
 const FIRST_REPEAT_DELAY := 0.08
@@ -381,7 +384,7 @@ func _build_ui() -> void:
 	hud_panel.add_child(hud_title)
 
 	build_label = Label.new()
-	build_label.text = "WORLD-16"
+	build_label.text = "CAMERA-17"
 	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	build_label.add_theme_font_size_override("font_size", 11)
 	build_label.add_theme_color_override("font_color", Color("#9fb5d8"))
@@ -403,8 +406,13 @@ func _build_ui() -> void:
 	map_frame = Panel.new()
 	map_frame.add_theme_stylebox_override("panel", _panel_style(Color("#101f30"), Color("#9caec3")))
 	root_column.add_child(map_frame)
-	map_center = CenterContainer.new()
+	map_center = Control.new()
 	map_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	map_center.offset_left = 7
+	map_center.offset_top = 7
+	map_center.offset_right = -7
+	map_center.offset_bottom = -7
+	map_center.clip_contents = true
 	map_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	map_frame.add_child(map_center)
 
@@ -715,25 +723,32 @@ func _refresh() -> void:
 			_end_hold()
 		_show_nearby_actions()
 
-func _camera_origin() -> Vector2i:
+func _camera_grid_position(point: Vector2i) -> Vector2:
 	var rows: Array = _current_rows()
 	if rows.is_empty():
-		return Vector2i.ZERO
-	var actor: Vector2i = previous_tile_pos if walking else tile_pos
+		return Vector2.ZERO
 	var width: int = str(rows[0]).length()
 	var height: int = rows.size()
-	return Vector2i(
-		clampi(actor.x - CAMERA_COLS / 2, 0, maxi(0, width - CAMERA_COLS)),
-		clampi(actor.y - CAMERA_ROWS / 2, 0, maxi(0, height - CAMERA_ROWS))
+	# Follow continuous world coordinates. The edge clamps avoid showing
+	# blank areas while allowing centered movement across interior tiles.
+	var x_offset: float = clampf(float(point.x) - (float(CAMERA_COLS) - 1.0) / 2.0, 0.0, maxf(0.0, float(width - CAMERA_COLS)))
+	var y_offset: float = clampf(float(point.y) - (float(CAMERA_ROWS) - 1.0) / 2.0, 0.0, maxf(0.0, float(height - CAMERA_ROWS)))
+	var base: Vector2 = Vector2(
+		(map_center.size.x - CAMERA_COLS * float(cell_size)) * 0.5,
+		(map_center.size.y - CAMERA_ROWS * float(cell_size)) * 0.5
 	)
+	return base - Vector2(x_offset, y_offset) * float(cell_size)
+
+func _camera_origin() -> Vector2i:
+	var screen: Vector2 = _camera_grid_position(tile_pos)
+	var base: Vector2 = Vector2(
+		(map_center.size.x - CAMERA_COLS * float(cell_size)) * 0.5,
+		(map_center.size.y - CAMERA_ROWS * float(cell_size)) * 0.5
+	)
+	return Vector2i(roundi((base.x - screen.x) / float(cell_size)), roundi((base.y - screen.y) / float(cell_size)))
 
 func _hero_cell_position(point: Vector2i) -> Vector2:
-	var local_point: Vector2i = point - _camera_origin()
-	var index: int = local_point.y * CAMERA_COLS + local_point.x
-	if local_point.x >= 0 and local_point.x < CAMERA_COLS and local_point.y >= 0 and local_point.y < CAMERA_ROWS and index < map_grid.get_child_count():
-		var cell: Control = map_grid.get_child(index)
-		return map_center.position + map_grid.position + cell.position
-	return map_center.position + map_grid.position + Vector2(local_point.x, local_point.y) * float(cell_size)
+	return map_center.position + map_grid.position + Vector2(point.x, point.y) * float(cell_size)
 
 func _sync_hero_overlay() -> void:
 	if hero_overlay == null or map_grid.get_child_count() == 0 or walking:
@@ -745,29 +760,42 @@ func _sync_hero_overlay() -> void:
 	_set_hero_walk_frame(1)
 
 func _draw_map() -> void:
+	var rows: Array = _current_rows()
+	if rows.is_empty():
+		return
+	var phase: int = int(game.state.get("phase", 1))
+	var row_width: int = str(rows[0]).length()
+	if last_map_scene == location_id and last_map_phase == phase and last_map_cell_size == cell_size and map_grid.get_child_count() == row_width * rows.size():
+		return
+	last_map_scene = location_id
+	last_map_phase = phase
+	last_map_cell_size = cell_size
 	for item in map_grid.get_children():
 		map_grid.remove_child(item)
 		item.queue_free()
+	map_grid.columns = row_width
 	var map_data: Dictionary = _map()
-	var rows: Array = _current_rows()
-	var origin: Vector2i = _camera_origin()
 	var is_world: bool = location_id == "world_map"
-	for screen_y in range(CAMERA_ROWS):
-		for screen_x in range(CAMERA_COLS):
-			var x: int = origin.x + screen_x
-			var y: int = origin.y + screen_y
+	var point_art: Dictionary = {}
+	for point in map_data.get("points", []):
+		if not _point_visible(point):
+			continue
+		var spot: Array = point.get("at", [])
+		if spot.size() != 2:
+			continue
+		point_art[Vector2i(int(spot[0]), int(spot[1]))] = str(point.get("image", ""))
+	for y in range(rows.size()):
+		for x in range(row_width):
 			var cell := TextureRect.new()
 			cell.custom_minimum_size = Vector2(cell_size, cell_size)
 			cell.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			cell.stretch_mode = TextureRect.STRETCH_SCALE
-			var symbol: String = "~"
-			if y >= 0 and y < rows.size() and x >= 0 and x < str(rows[y]).length():
-				symbol = str(rows[y]).substr(x, 1)
+			var symbol: String = str(rows[y]).substr(x, 1)
 			var art_id: String = "wall" if symbol == "#" else "ground"
 			if textures.has(art_id):
 				cell.texture = textures[art_id]
-			# Reuse existing commissioned artwork with restrained terrain tints
-			# until the independent generated overworld tile set is complete.
+			# Existing generated art with separate location tints; proper
+			# terrain art will be created in a later pass.
 			if symbol == "p":
 				cell.modulate = Color("#caa06c")
 			elif symbol == "f":
@@ -776,44 +804,36 @@ func _draw_map() -> void:
 				cell.modulate = Color("#285a97")
 			elif symbol == "s":
 				cell.modulate = Color("#b7a47a")
-			elif symbol == "#":
-				cell.modulate = Color("#a5a9ac") if is_world else Color.WHITE
+			elif symbol == "#" and is_world:
+				cell.modulate = Color("#a5a9ac")
 			map_grid.add_child(cell)
-			var sprite_id: String = ""
-			if symbol == "H":
-				sprite_id = "house"
+			var sprite_id: String = "house" if symbol == "H" else str(point_art.get(Vector2i(x, y), ""))
+			if sprite_id.is_empty():
+				continue
+			var sprite := TextureRect.new()
+			sprite.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+			sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			if textures.has(sprite_id):
+				sprite.texture = textures[sprite_id]
+			var sprite_profile: Dictionary = _profile_from_field_sprite(sprite_id)
+			if not sprite_profile.is_empty():
+				var actor_rect: Rect2 = SpriteAnimation.field_rect(float(cell_size), sprite_profile)
+				sprite.position = actor_rect.position
+				sprite.size = actor_rect.size
+				var idle: Texture2D = SpriteAnimation.frame(
+					character_walk_frames.get(str(sprite_profile.get("id", "")), []),
+					sprite_profile.get("walk_animation", {}), Vector2i.DOWN,
+					int(sprite_profile.get("walk_animation", {}).get("idle_frame", 1))
+				)
+				if idle != null:
+					sprite.texture = idle
 			else:
-				for point in map_data.get("points", []):
-					if not _point_visible(point):
-						continue
-					var xy: Array = point.get("at", [])
-					if xy.size() == 2 and int(xy[0]) == x and int(xy[1]) == y:
-						sprite_id = str(point.get("image", ""))
-						break
-			if not sprite_id.is_empty():
-				var sprite := TextureRect.new()
-				sprite.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-				sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-				sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-				sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				if textures.has(sprite_id):
-					sprite.texture = textures[sprite_id]
-				var sprite_profile: Dictionary = _profile_from_field_sprite(sprite_id)
-				if not sprite_profile.is_empty():
-					var actor_rect: Rect2 = SpriteAnimation.field_rect(float(cell_size), sprite_profile)
-					sprite.position = actor_rect.position
-					sprite.size = actor_rect.size
-					sprite.custom_minimum_size = Vector2.ZERO
-					var idle: Texture2D = SpriteAnimation.frame(
-						character_walk_frames.get(str(sprite_profile.get("id", "")), []),
-						sprite_profile.get("walk_animation", {}), Vector2i.DOWN,
-						int(sprite_profile.get("walk_animation", {}).get("idle_frame", 1))
-					)
-					if idle != null:
-						sprite.texture = idle
-				else:
-					sprite.size = Vector2(cell_size, cell_size)
-				cell.add_child(sprite)
+				sprite.size = Vector2(cell_size, cell_size)
+			cell.add_child(sprite)
+	rendered_tile_count = map_grid.get_child_count()
+	map_grid.position = _camera_grid_position(tile_pos)
 	if not walking:
 		call_deferred("_sync_hero_overlay")
 
@@ -889,11 +909,15 @@ func _walk(dx: int, dy: int) -> void:
 		walking = false
 		_refresh()
 		return
-	var start: Vector2 = hero_overlay.position
 	var target_rect: Rect2 = SpriteAnimation.field_rect(float(cell_size), _character_profile("hero"))
-	var finish: Vector2 = _hero_cell_position(goal) + target_rect.position
+	var next_camera_pos: Vector2 = _camera_grid_position(goal)
+	var old_camera_pos: Vector2 = map_grid.position
+	var finish: Vector2 = map_center.position + next_camera_pos + Vector2(goal.x, goal.y) * float(cell_size) + target_rect.position
 	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(map_grid, "position", next_camera_pos, WALK_DURATION).set_trans(Tween.TRANS_LINEAR)
 	tween.tween_property(hero_overlay, "position", finish, WALK_DURATION).set_trans(Tween.TRANS_LINEAR)
+	tween.set_parallel(false)
 	tween.tween_callback(func():
 		walking = false
 		_set_hero_walk_frame(1)
