@@ -21,7 +21,7 @@ func _run() -> void:
 		return
 	var ui: Control = packed.instantiate()
 	root.add_child(ui)
-	check(ui.game.registry.records("maps").size() == 2, "Scene initializes data registry")
+	check(ui.game.registry.records("maps").size() == 3, "Scene initializes village, overworld and cave")
 	check(ui.textures.size() >= 16, "Original eight images plus eight unique party sprites decode")
 	check(ui.textures.has("ricky_field") and ui.textures.has("meri_battle") and ui.textures.has("goro_battle"), "Three companion sprites are available in both game modes")
 	check(ui.theme != null and ui.theme.default_font != null, "Imported Japanese font resource is loaded")
@@ -35,6 +35,26 @@ func _run() -> void:
 		var ground: Texture2D = ui.textures["ground"]
 		check(ground.get_width() < 32 and ground.get_height() < 32, "Ground padding was cropped away")
 	check(ui.map_grid.get_child_count() == 70, "Map builds 10x7 visible tiles")
+	var initial_location: String = ui.location_id
+	ui.location_id = "world_map"
+	ui.tile_pos = Vector2i(12, 14)
+	ui._refresh()
+	check(ui._current_rows().size() == 24, "World map data exceeds viewport height")
+	check(ui.map_grid.get_child_count() == 70, "World viewport renders 10x7 camera tiles, not all 960")
+	check(ui._camera_origin().x > 0 and ui._camera_origin().y > 0, "Overworld camera follows hero away from origin")
+	var old_camera: Vector2i = ui._camera_origin()
+	ui.tile_pos = Vector2i(30, 16)
+	ui._refresh()
+	check(ui._camera_origin().x > old_camera.x, "Camera scrolls toward eastern landmarks")
+	check(ui._camera_origin().y > old_camera.y, "Camera scrolls toward southern landmarks")
+	ui._travel("cave", [1, 5])
+	check(ui.location_id == "cave" and ui.tile_pos == Vector2i(1, 5), "World to cave travel uses destination spawn")
+	ui._travel("world_map", [30, 7])
+	check(ui.location_id == "world_map" and ui.tile_pos == Vector2i(30, 7), "Cave returns to its world-map entrance")
+	ui.location_id = initial_location
+	ui.tile_pos = Vector2i(4, 5)
+	ui._refresh()
+
 	check(ui.description_label.text.contains("ウィンドル"), "New Windle village visible on startup")
 	check(ui.tile_pos == Vector2i(4, 5), "Hero spawns at village entry rather than map edge")
 	var village: Dictionary = ui.game.registry.by_id("maps", "field")
