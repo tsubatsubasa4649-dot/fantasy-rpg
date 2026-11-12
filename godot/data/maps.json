@@ -194,8 +194,19 @@
           },
           "actions": [
             {
-              "label": "村と洞窟への道を確かめる",
-              "message": "石畳を北東へ進むと洞窟。宿屋は右手の赤い屋根だ。"
+              "label": "古い案内板を読む",
+              "event": "read_village_sign",
+              "when": {
+                "flag_is": [
+                  "windle_sign_read",
+                  false
+                ]
+              },
+              "success_message": "案内板の裏に『最初の約束は古井戸の底に』と彫られていた。"
+            },
+            {
+              "label": "洞窟への道を確認する",
+              "message": "石畳は東へ折れ、峠へ続いている。木立の先に洞窟の入口がある。"
             }
           ]
         },
@@ -214,8 +225,25 @@
           },
           "actions": [
             {
-              "label": "井戸の底をのぞく",
-              "message": "古い紋章には、月を挟む二羽の鳥。村を離れても、この模様を覚えておこう。"
+              "label": "井戸の底を調べる",
+              "event": "discover_well_emblem",
+              "when": {
+                "flag_is": [
+                  "windle_well_discovered",
+                  false
+                ]
+              },
+              "success_message": "底の石板に月を挟む二羽の鳥。橋の向こうにも同じ紋章があるらしい。"
+            },
+            {
+              "label": "見つけた紋章を記憶する",
+              "when": {
+                "flag_is": [
+                  "windle_well_discovered",
+                  true
+                ]
+              },
+              "message": "月を挟む二羽の鳥。別の周回で誰かがこの紋章を知っているかもしれない。"
             }
           ]
         },
