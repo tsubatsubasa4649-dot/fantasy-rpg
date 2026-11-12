@@ -2,8 +2,9 @@ extends Control
 ## Phase 3 vertical slice. UI controls are native Godot widgets; art is generated PNG data.
 const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
+const SpriteAnimation = preload("res://scripts/sprite_animation.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG WALK-13 / FOUR DIRECTION"
+const BUILD_ID := "RPG SCALE-14 / PARTY UI"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -58,6 +59,8 @@ var walk_elapsed: float = 0.0
 var walk_sprite_direction: int = 0
 var walk_sprite_frame: int = 1
 var walk_textures: Array = []
+var character_walk_frames: Dictionary = {}
+var last_map_scene: String = ""
 var held_direction: Vector2i = Vector2i.ZERO
 var repeat_clock: float = 0.0
 const FIRST_REPEAT_DELAY := 0.08
@@ -195,42 +198,43 @@ func _load_art() -> void:
 	_load_party_atlas()
 	_load_walk_frames()
 
+func _character_profile(character_id: String) -> Dictionary:
+	return game.registry.by_id("characters", character_id)
+
+func _profile_from_field_sprite(sprite_id: String) -> Dictionary:
+	for profile in game.registry.records("characters"):
+		if str(profile.get("field_sprite_id", "")) == sprite_id:
+			return profile
+	return {}
+
 func _load_walk_frames() -> void:
-	# Generated 4x3 character art: 4 direction rows, 3 animation columns.
-	# Each tile is cropped from the user-approved illustration; no drawing in code.
-	var path := "res://assets/hero_walk.b64"
-	if not FileAccess.file_exists(path):
-		push_error("Hero walking sheet missing: " + path)
-		return
-	var bytes: PackedByteArray = Marshalls.base64_to_raw(FileAccess.get_file_as_string(path).strip_edges())
-	var sheet := Image.new()
-	if sheet.load_png_from_buffer(bytes) != OK or sheet.get_width() != 144 or sheet.get_height() != 224:
-		push_error("Generated walking sheet must be a 144x224 PNG.")
-		return
-	var atlas: Texture2D = ImageTexture.create_from_image(sheet)
-	for row in range(4):
-		var frames: Array[AtlasTexture] = []
-		for col in range(3):
-			var sprite := AtlasTexture.new()
-			sprite.atlas = atlas
-			sprite.region = Rect2(col * 48, row * 56, 48, 56)
-			frames.append(sprite)
-		walk_textures.append(frames)
-	textures["hero_walk_atlas"] = atlas
+	# Every actor uses the same sheet loader; companions may use static frames
+	# until their directional PNG artwork is provided.
+	character_walk_frames.clear()
+	for profile in game.registry.records("characters"):
+		var character_id: String = str(profile.get("id", ""))
+		var frames: Array = SpriteAnimation.decode_frames(profile)
+		character_walk_frames[character_id] = frames
+	walk_textures = character_walk_frames.get("hero", [])
+	if walk_textures.size() == 4:
+		textures["hero_walk_atlas"] = walk_textures[0][0].atlas
 
 func _face_row(direction: Vector2i) -> int:
-	if direction.y < 0: return 3
-	if direction.y > 0: return 0
-	if direction.x < 0: return 1
-	return 2
+	return SpriteAnimation.direction_row(_character_profile("hero").get("walk_animation", {}), direction)
 
 func _set_hero_walk_frame(frame: int) -> void:
 	walk_sprite_frame = clampi(frame, 0, 2)
-	if hero_overlay == null or walk_textures.size() != 4:
+	if hero_overlay == null:
 		return
-	hero_overlay.texture = walk_textures[walk_sprite_direction][walk_sprite_frame]
-	# The sheet contains separate left- and right-facing sprites.
-	hero_overlay.flip_h = false
+	var hero: Dictionary = _character_profile("hero")
+	var texture: Texture2D = SpriteAnimation.frame(
+		character_walk_frames.get("hero", []),
+		hero.get("walk_animation", {}), facing, walk_sprite_frame
+	)
+	if texture != null:
+		hero_overlay.texture = texture
+		hero_overlay.flip_h = false
+
 
 func _load_party_atlas() -> void:
 	# Images come from a hand-selected, AI-generated art sheet, not drawing code.
@@ -375,7 +379,7 @@ func _build_ui() -> void:
 	hud_panel.add_child(hud_title)
 
 	build_label = Label.new()
-	build_label.text = "WALK-13"
+	build_label.text = "SCALE-14"
 	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	build_label.add_theme_font_size_override("font_size", 11)
 	build_label.add_theme_color_override("font_color", Color("#9fb5d8"))
@@ -413,8 +417,8 @@ func _build_ui() -> void:
 	map_grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	map_center.add_child(map_grid)
 	hero_overlay = TextureRect.new()
-	hero_overlay.custom_minimum_size = Vector2(cell_size, cell_size)
-	hero_overlay.size = Vector2(cell_size, cell_size)
+	hero_overlay.custom_minimum_size = Vector2.ZERO
+	hero_overlay.size = SpriteAnimation.field_rect(float(cell_size), _character_profile("hero")).size
 	hero_overlay.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	hero_overlay.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	hero_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -631,8 +635,9 @@ func _process(delta: float) -> void:
 	# Walk animation advances independently of whether the player keeps a key held.
 	if walking:
 		walk_elapsed += delta
-		var phase: float = walk_elapsed / WALK_DURATION
-		_set_hero_walk_frame(0 if phase < 0.32 else (1 if phase < 0.63 else 2))
+		_set_hero_walk_frame(SpriteAnimation.step_frame(
+			_character_profile("hero").get("walk_animation", {}), walk_elapsed, WALK_DURATION
+		))
 		return
 	if held_direction == Vector2i.ZERO:
 		return
@@ -713,8 +718,9 @@ func _hero_cell_position(point: Vector2i) -> Vector2:
 func _sync_hero_overlay() -> void:
 	if hero_overlay == null or map_grid.get_child_count() == 0 or walking:
 		return
-	hero_overlay.size = Vector2(cell_size, cell_size)
-	hero_overlay.position = _hero_cell_position(tile_pos)
+	var actor_rect: Rect2 = SpriteAnimation.field_rect(float(cell_size), _character_profile("hero"))
+	hero_overlay.size = actor_rect.size
+	hero_overlay.position = _hero_cell_position(tile_pos) + actor_rect.position
 	walk_sprite_direction = _face_row(facing)
 	if not walking:
 		_set_hero_walk_frame(1)
@@ -749,12 +755,27 @@ func _draw_map() -> void:
 						break
 			if not sprite_id.is_empty():
 				var sprite := TextureRect.new()
-				sprite.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+				sprite.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 				sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 				sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 				sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				if textures.has(sprite_id):
 					sprite.texture = textures[sprite_id]
+				var sprite_profile: Dictionary = _profile_from_field_sprite(sprite_id)
+				if not sprite_profile.is_empty():
+					var actor_rect: Rect2 = SpriteAnimation.field_rect(float(cell_size), sprite_profile)
+					sprite.position = actor_rect.position
+					sprite.size = actor_rect.size
+					sprite.custom_minimum_size = Vector2.ZERO
+					var idle: Texture2D = SpriteAnimation.frame(
+						character_walk_frames.get(str(sprite_profile.get("id", "")), []),
+						sprite_profile.get("walk_animation", {}), Vector2i.DOWN,
+						int(sprite_profile.get("walk_animation", {}).get("idle_frame", 1))
+					)
+					if idle != null:
+						sprite.texture = idle
+				else:
+					sprite.size = Vector2(cell_size, cell_size)
 				cell.add_child(sprite)
 
 	if not walking:
@@ -823,7 +844,8 @@ func _walk(dx: int, dy: int) -> void:
 		_refresh()
 		return
 	var start: Vector2 = hero_overlay.position
-	var finish: Vector2 = start + Vector2(dx, dy) * float(cell_size)
+	var target_rect: Rect2 = SpriteAnimation.field_rect(float(cell_size), _character_profile("hero"))
+	var finish: Vector2 = _hero_cell_position(goal) + target_rect.position
 	var tween := create_tween()
 	tween.tween_property(hero_overlay, "position", finish, WALK_DURATION).set_trans(Tween.TRANS_LINEAR)
 	tween.tween_callback(func():
@@ -923,7 +945,7 @@ func _begin_battle(enemy_id: String) -> void:
 		var record: Dictionary = game.registry.by_id("characters", str(ally["id"]))
 		var battle_art: String = str(record.get("battle_sprite_id", "hero"))
 		var avatar := _battle_portrait(battle_art)
-		avatar.custom_minimum_size = Vector2(80, 76)
+		avatar.custom_minimum_size = SpriteAnimation.battle_size(Vector2(80, 76), record)
 		avatar_column.add_child(avatar)
 		var caption := Label.new()
 		caption.text = str(ally["name"])
