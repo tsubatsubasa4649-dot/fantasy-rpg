@@ -244,6 +244,42 @@
       },
       "effects": [],
       "time_cost": 10
+    },
+    {
+      "id": "read_village_sign",
+      "when": {
+        "flag_is": [
+          "windle_sign_read",
+          false
+        ]
+      },
+      "effects": [
+        {
+          "set_flag": [
+            "windle_sign_read",
+            true
+          ]
+        }
+      ],
+      "time_cost": 0
+    },
+    {
+      "id": "discover_well_emblem",
+      "when": {
+        "flag_is": [
+          "windle_well_discovered",
+          false
+        ]
+      },
+      "effects": [
+        {
+          "set_flag": [
+            "windle_well_discovered",
+            true
+          ]
+        }
+      ],
+      "time_cost": 0
     }
   ]
 }
