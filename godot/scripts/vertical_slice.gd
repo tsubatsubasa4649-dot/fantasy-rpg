@@ -694,6 +694,9 @@ func _refresh() -> void:
 	]
 	var map_data: Dictionary = _map()
 	description_label.text = str(map_data.get("name", "")) + ("　｜地面が裂けている…" if int(game.state.get("phase", 1)) >= 3 else "")
+	var nearby: Dictionary = _nearby_point()
+	if not nearby.is_empty():
+		description_label.text += "　｜近く：" + str(nearby.get("label", ""))
 	_draw_map()
 	if battle_active:
 		_refresh_battle()
