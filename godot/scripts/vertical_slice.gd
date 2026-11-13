@@ -4,7 +4,7 @@ const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const SpriteAnimation = preload("res://scripts/sprite_animation.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG TILES-18 / GENERATED TERRAIN"
+const BUILD_ID := "RPG AUTOTILE-19 / COHERENT WORLD"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -205,24 +205,46 @@ func _load_art() -> void:
 	_load_world_tiles()
 
 func _load_world_tiles() -> void:
-	# Five actual image-generated terrain samples, cropped from original artwork:
-	# sea, grass, forest, mountain, road. Each 24x24 in a 120x24 strip.
-	var path: String = "res://assets/world_tiles.b64"
+	# AI-generated source painting cropped into 4-by-2 animated-free art regions.
+	# The strip uses mirrored edges for periodic 4-by-4 tile patterns; choosing
+	# the cell by absolute world coordinate preserves clean joins while panning.
+	var path: String = "res://assets/world_atlas_v2.b64"
 	if not FileAccess.file_exists(path):
-		push_warning("World tile art atlas missing; fallback textures remain")
+		push_warning("Second-generation world tile atlas missing")
 		return
 	var image := Image.new()
 	var bytes: PackedByteArray = Marshalls.base64_to_raw(FileAccess.get_file_as_string(path).strip_edges())
-	if image.load_png_from_buffer(bytes) != OK or image.get_width() != 120 or image.get_height() != 24:
-		push_warning("Generated world tile atlas invalid")
+	if image.load_png_from_buffer(bytes) != OK or image.get_width() != 64 or image.get_height() != 160:
+		push_warning("Second-generation world tile atlas has invalid 64x160 dimensions")
 		return
 	var atlas: Texture2D = ImageTexture.create_from_image(image)
 	var ids: Array[String] = ["world_sea", "world_grass", "world_forest", "world_mountain", "world_road"]
-	for index in range(ids.size()):
-		var tile := AtlasTexture.new()
-		tile.atlas = atlas
-		tile.region = Rect2(index * 24, 0, 24, 24)
-		textures[ids[index]] = tile
+	for kind in range(ids.size()):
+		var tiles: Array = []
+		for row in range(2):
+			var art_row: Array = []
+			for col in range(4):
+				var tile := AtlasTexture.new()
+				tile.atlas = atlas
+				tile.region = Rect2(col * 16, kind * 32 + row * 16, 16, 16)
+				art_row.append(tile)
+			tiles.append(art_row)
+		textures[ids[kind] + "_variants"] = tiles
+		textures[ids[kind]] = tiles[0][0]
+
+func _world_tile(symbol: String, world_x: int, world_y: int) -> Texture2D:
+	var world_art: Dictionary = {"~": "world_sea", ".": "world_grass", "f": "world_forest", "#": "world_mountain", "p": "world_road"}
+	var art_id: String = str(world_art.get(symbol, "world_grass"))
+	var variants: Array = textures.get(art_id + "_variants", [])
+	if variants.size() != 2:
+		return textures.get(art_id, textures.get("ground"))
+	var row: int = posmod(world_y, 4)
+	if row >= 2:
+		row = 3 - row
+	return variants[row][posmod(world_x, 4)]
+
+func _world_tile_flip_v(world_y: int) -> bool:
+	return posmod(world_y, 4) >= 2
 
 func _character_profile(character_id: String) -> Dictionary:
 	return game.registry.by_id("characters", character_id)
@@ -405,7 +427,7 @@ func _build_ui() -> void:
 	hud_panel.add_child(hud_title)
 
 	build_label = Label.new()
-	build_label.text = "TILES-18"
+	build_label.text = "TILES-19"
 	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	build_label.add_theme_font_size_override("font_size", 11)
 	build_label.add_theme_color_override("font_color", Color("#9fb5d8"))
@@ -819,9 +841,9 @@ func _draw_map() -> void:
 			var symbol: String = str(rows[y]).substr(x, 1)
 			var art_id: String = "wall" if symbol == "#" else "ground"
 			if is_world:
-				var world_art: Dictionary = {"~": "world_sea", ".": "world_grass", "f": "world_forest", "#": "world_mountain", "p": "world_road"}
-				art_id = str(world_art.get(symbol, "world_grass"))
-			if textures.has(art_id):
+				cell.texture = _world_tile(symbol, x, y)
+				cell.flip_v = _world_tile_flip_v(y)
+			elif textures.has(art_id):
 				cell.texture = textures[art_id]
 			elif textures.has("ground"):
 				cell.texture = textures["ground"]
