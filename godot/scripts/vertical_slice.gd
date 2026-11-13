@@ -3,6 +3,7 @@ extends Control
 const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const SpriteAnimation = preload("res://scripts/sprite_animation.gd")
+const CoastTransition = preload("res://shaders/coast_transition.gdshader")
 const TILE_SIZE := 44
 const BUILD_ID := "RPG AUTOTILE-19 / COHERENT WORLD"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
@@ -843,6 +844,22 @@ func _draw_map() -> void:
 			if is_world:
 				cell.texture = _world_tile(symbol, x, y)
 				cell.flip_v = _world_tile_flip_v(y)
+				if symbol != "~":
+					var coast_edges := Vector4.ZERO
+					if y > 0 and str(rows[y - 1]).substr(x, 1) == "~":
+						coast_edges.x = 1.0
+					if x + 1 < row_width and str(rows[y]).substr(x + 1, 1) == "~":
+						coast_edges.y = 1.0
+					if y + 1 < rows.size() and str(rows[y + 1]).substr(x, 1) == "~":
+						coast_edges.z = 1.0
+					if x > 0 and str(rows[y]).substr(x - 1, 1) == "~":
+						coast_edges.w = 1.0
+					if coast_edges != Vector4.ZERO:
+						var coast_material := ShaderMaterial.new()
+						coast_material.shader = CoastTransition
+						coast_material.set_shader_parameter("sea_edges", coast_edges)
+						coast_material.set_shader_parameter("sand_art", _world_tile("p", x, y))
+						cell.material = coast_material
 			elif textures.has(art_id):
 				cell.texture = textures[art_id]
 			elif textures.has("ground"):
