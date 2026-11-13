@@ -28,6 +28,8 @@ func _run() -> void:
 		check(ui.textures.has(world_art_id), "Generated overworld terrain atlas has " + world_art_id)
 		if ui.textures.has(world_art_id):
 			check(ui.textures[world_art_id] is AtlasTexture, "Terrain is cut from image art, not a generated fill: " + world_art_id)
+		var variants: Array = ui.textures.get(world_art_id + "_variants", [])
+		check(variants.size() == 2 and variants[0].size() == 4 and variants[1].size() == 4, "Terrain has eight authored tile regions: " + world_art_id)
 	check(ui.theme != null and ui.theme.default_font != null, "Imported Japanese font resource is loaded")
 	check(ThemeDB.fallback_font == ui.theme.default_font, "Global UI fallback matches bundled Japanese font")
 	if ui.theme != null and ui.theme.default_font != null:
@@ -53,6 +55,10 @@ func _run() -> void:
 	if expected_world_art.has(sampled_symbol):
 		var sample_cell: TextureRect = ui.map_grid.get_child(sample_y * 40 + sample_x)
 		check(sample_cell.texture == ui.textures[expected_world_art[sampled_symbol]], "World displays real generated terrain texture rather than tinted village ground")
+		var original_frame: Texture2D = ui._world_tile(sampled_symbol, 0, 0)
+		var next_frame: Texture2D = ui._world_tile(sampled_symbol, 1, 0)
+		check(original_frame != next_frame, "Adjacent world tiles use different authored fragments")
+		check(ui._world_tile_flip_v(2), "Vertical tile repeat mirrors artwork rather than hard-cutting")
 	check(ui._camera_origin().x > 0 and ui._camera_origin().y > 0, "Overworld camera follows hero away from origin")
 	var old_camera: Vector2i = ui._camera_origin()
 	ui.tile_pos = Vector2i(30, 16)
