@@ -47,6 +47,19 @@ func _run() -> void:
 	ui._refresh()
 	check(ui._current_rows().size() == 24, "World map data exceeds viewport height")
 	check(ui.map_grid.get_child_count() == 960, "World tiles stay cached for pixel-smooth scrolling")
+	var found_coast: bool = false
+	var terrain_rows: Array = ui._current_rows()
+	for cy in range(1, terrain_rows.size() - 1):
+		if found_coast:
+			break
+		for cx in range(1, 39):
+			var current_symbol: String = str(terrain_rows[cy]).substr(cx, 1)
+			if current_symbol != "~" and str(terrain_rows[cy - 1]).substr(cx, 1) == "~":
+				var shoreline: TextureRect = ui.map_grid.get_child(cy * 40 + cx)
+				check(shoreline.material is ShaderMaterial, "Coast tile uses neighboring-sea transition artwork")
+				found_coast = true
+				break
+	check(found_coast, "Irregular world has north-facing shoreline transitions")
 	var world_rows: Array = ui._current_rows()
 	var sample_x: int = 0
 	var sample_y: int = 0
