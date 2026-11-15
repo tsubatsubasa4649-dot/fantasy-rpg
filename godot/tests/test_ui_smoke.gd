@@ -25,11 +25,15 @@ func _run() -> void:
 	check(ui.textures.size() >= 16, "Original eight images plus eight unique party sprites decode")
 	check(ui.textures.has("ricky_field") and ui.textures.has("meri_battle") and ui.textures.has("goro_battle"), "Three companion sprites are available in both game modes")
 	for world_art_id in ["world_sea", "world_grass", "world_forest", "world_mountain", "world_road"]:
-		check(ui.textures.has(world_art_id), "Generated overworld terrain atlas has " + world_art_id)
+		check(ui.textures.has(world_art_id), "Source atlas terrain tile is loaded: " + world_art_id)
 		if ui.textures.has(world_art_id):
-			check(ui.textures[world_art_id] is AtlasTexture, "Terrain is cut from image art, not a generated fill: " + world_art_id)
-		var variants: Array = ui.textures.get(world_art_id + "_variants", [])
-		check(variants.size() == 2 and variants[0].size() == 4 and variants[1].size() == 4, "Terrain has eight authored tile regions: " + world_art_id)
+			var art: Texture2D = ui.textures[world_art_id]
+			check(art is AtlasTexture and art.get_width() == 16 and art.get_height() == 16, "Terrain is a single 16px asset crop: " + world_art_id)
+	check(not ui.textures.has("world_grass_variants"), "No symmetry-generated terrain variants")
+	check(ui.map_frame.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST, "Map uses nearest-neighbor pixel filtering")
+	check(ui.CAMERA_COLS == 15 and ui.CAMERA_ROWS == 11, "Camera viewport is 15 by 11 tiles")
+	check(ui.cell_size % 16 == 0, "Display tiles use integer 16px scale")
+	check(ui.hero_overlay.size == Vector2(ui.cell_size, ui.cell_size), "Player sprite occupies exactly one map tile")
 	check(ui.theme != null and ui.theme.default_font != null, "Imported Japanese font resource is loaded")
 	check(ThemeDB.fallback_font == ui.theme.default_font, "Global UI fallback matches bundled Japanese font")
 	if ui.theme != null and ui.theme.default_font != null:
@@ -40,38 +44,30 @@ func _run() -> void:
 	if ui.textures.has("ground"):
 		var ground: Texture2D = ui.textures["ground"]
 		check(ground.get_width() < 32 and ground.get_height() < 32, "Ground padding was cropped away")
-	check(ui.map_grid.get_child_count() == 70, "Map builds 10x7 visible tiles")
+	check(ui.map_grid.get_child_count() == 70, "Village retains its original 10x7 layout")
 	var initial_location: String = ui.location_id
 	ui.location_id = "world_map"
 	ui.tile_pos = Vector2i(12, 14)
 	ui._refresh()
 	check(ui._current_rows().size() == 24, "World map data exceeds viewport height")
 	check(ui.map_grid.get_child_count() == 960, "World tiles stay cached for pixel-smooth scrolling")
-	var found_coast: bool = false
-	var terrain_rows: Array = ui._current_rows()
-	for cy in range(1, terrain_rows.size() - 1):
-		if found_coast:
-			break
-		for cx in range(1, 39):
-			var current_symbol: String = str(terrain_rows[cy]).substr(cx, 1)
-			if current_symbol != "~" and str(terrain_rows[cy - 1]).substr(cx, 1) == "~":
-				var shoreline: TextureRect = ui.map_grid.get_child(cy * 40 + cx)
-				check(shoreline.material is ShaderMaterial, "Coast tile uses neighboring-sea transition artwork")
-				found_coast = true
-				break
-	check(found_coast, "Irregular world has north-facing shoreline transitions")
 	var world_rows: Array = ui._current_rows()
-	var sample_x: int = 0
-	var sample_y: int = 0
 	var expected_world_art: Dictionary = {"~": "world_sea", ".": "world_grass", "f": "world_forest", "#": "world_mountain", "p": "world_road"}
-	var sampled_symbol: String = str(world_rows[sample_y]).substr(sample_x, 1)
-	if expected_world_art.has(sampled_symbol):
-		var sample_cell: TextureRect = ui.map_grid.get_child(sample_y * 40 + sample_x)
-		check(sample_cell.texture == ui.textures[expected_world_art[sampled_symbol]], "World displays real generated terrain texture rather than tinted village ground")
-		var original_frame: Texture2D = ui._world_tile(sampled_symbol, 0, 0)
-		var next_frame: Texture2D = ui._world_tile(sampled_symbol, 1, 0)
-		check(original_frame != next_frame, "Adjacent world tiles use different authored fragments")
-		check(ui._world_tile_flip_v(2), "Vertical tile repeat mirrors artwork rather than hard-cutting")
+	for symbol in expected_world_art:
+		var found: bool = false
+		for y in range(world_rows.size()):
+			if found:
+				break
+			for x in range(str(world_rows[y]).length()):
+				if str(world_rows[y]).substr(x, 1) == symbol:
+					var cell: TextureRect = ui.map_grid.get_child(y * 40 + x)
+					check(cell.texture == ui.textures[expected_world_art[symbol]], "World terrain reads source texture for " + symbol)
+					check(cell.material == null and not cell.flip_v, "World terrain is not mirrored or shader-generated")
+					check(cell.size == Vector2(ui.cell_size, ui.cell_size), "World cell is integer-scaled 16px art")
+					found = true
+					break
+		check(found, "World map contains terrain type " + symbol)
+	check(ui._world_tile("f", 4, 9) == ui._world_tile("f", 10, 2), "World tile selection does not synthesize symmetry variants")
 	check(ui._camera_origin().x > 0 and ui._camera_origin().y > 0, "Overworld camera follows hero away from origin")
 	var old_camera: Vector2i = ui._camera_origin()
 	ui.tile_pos = Vector2i(30, 16)
@@ -125,10 +121,9 @@ func _run() -> void:
 		check(profile.has("walk_animation"), "Companion walk spec can be extended: " + actor_id)
 		check(ui.character_walk_frames.has(actor_id), "Companion has an animation registry entry: " + actor_id)
 	var hero_visual: Dictionary = ui.game.registry.by_id("characters", "hero")
-	var hero_rect: Rect2 = SpriteAnimation.field_rect(float(ui.cell_size), hero_visual)
-	check(hero_rect.size.x > float(ui.cell_size), "Hero larger than one tile without moving its feet")
-	check(hero_rect.position.y < 0.0, "Hero grows upward instead of shifting feet")
-	check(absf(ui.hero_overlay.size.x - hero_rect.size.x) < 1.0, "Hero portrait uses data-driven enlarged size")
+	var hero_rect: Rect2 = ui._field_actor_rect()
+	check(hero_rect.size == Vector2(ui.cell_size, ui.cell_size) and hero_rect.position == Vector2.ZERO, "Hero field render uses one exact tile")
+	check(ui.hero_overlay.size == hero_rect.size, "Hero display matches NPC field tile dimensions")
 	for direction in range(4):
 		check(ui.walk_textures[direction].size() == 3, "Direction " + str(direction) + " has idle and two steps")
 		for frame in range(3):
