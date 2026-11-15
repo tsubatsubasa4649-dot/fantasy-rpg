@@ -31,6 +31,7 @@ func new_run(carryover: Array = []) -> void:
 		"phase": 1,
 		"flags": registry.world().get("initial_flags", {}).duplicate(true),
 		"recruited": [],
+		"party_hp": {},
 		"party": [str(registry.world().get("party", {}).get("hero_id", "hero"))],
 		"storylines": {},
 		"events_completed": [],
@@ -164,6 +165,21 @@ func begin_next_loop(carryover: Array = []) -> bool:
 	new_run(carryover)
 	return true
 
+func party_health(character_id: String, max_hp: int) -> int:
+	var health: Dictionary = state.get("party_hp", {})
+	return clampi(int(health.get(character_id, max_hp)), 0, max_hp)
+
+func remember_party_health(allies: Array) -> void:
+	var health: Dictionary = state.get("party_hp", {})
+	for ally in allies:
+		if typeof(ally) == TYPE_DICTIONARY:
+			health[str(ally.get("id", ""))] = int(ally.get("hp", 0))
+	state["party_hp"] = health
+
+func restore_party_health() -> void:
+	# An empty dictionary means full HP for every party character.
+	state["party_hp"] = {}
+
 func grant_item(item_id: String) -> bool:
 	if registry.by_id("items", item_id).is_empty():
 		return false
@@ -198,6 +214,8 @@ func _valid_loaded_state(candidate: Dictionary) -> bool:
 	if typeof(candidate.get("recruited")) != TYPE_ARRAY or typeof(candidate.get("party")) != TYPE_ARRAY:
 		return false
 	if typeof(candidate.get("flags")) != TYPE_DICTIONARY or typeof(candidate.get("storylines")) != TYPE_DICTIONARY:
+		return false
+	if candidate.has("party_hp") and typeof(candidate["party_hp"]) != TYPE_DICTIONARY:
 		return false
 	if not (typeof(candidate.get("day")) in [TYPE_INT, TYPE_FLOAT]) or candidate["day"] < 0:
 		return false

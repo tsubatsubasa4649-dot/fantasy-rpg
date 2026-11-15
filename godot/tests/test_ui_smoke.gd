@@ -45,7 +45,11 @@ func _run() -> void:
 	if ui.textures.has("ground"):
 		var ground: Texture2D = ui.textures["ground"]
 		check(ground.get_width() < 32 and ground.get_height() < 32, "Ground padding was cropped away")
-	check(ui.map_grid.get_child_count() == 70, "Village retains its original 10x7 layout")
+	check(ui.map_grid.get_child_count() == 352, "Village expands to 22x16 without changing the camera window")
+	for art_id in ["village_grass", "village_cobble", "village_dirt", "village_flowers", "village_wheat"]:
+		check(ui.textures.has(art_id), "Village source atlas provides: " + art_id)
+		if ui.textures.has(art_id):
+			check(ui.textures[art_id] is AtlasTexture and ui.textures[art_id].get_width() == 16, "Village art is an ungenerated 16px atlas crop")
 	var initial_location: String = ui.location_id
 	ui.location_id = "world_map"
 	ui.tile_pos = Vector2i(12, 14)
@@ -108,14 +112,15 @@ func _run() -> void:
 	ui._travel("world_map", [30, 7])
 	check(ui.location_id == "world_map" and ui.tile_pos == Vector2i(30, 7), "Cave returns to its world-map entrance")
 	ui.location_id = initial_location
-	ui.tile_pos = Vector2i(4, 5)
+	ui.tile_pos = Vector2i(10, 10)
 	ui._refresh()
 	await process_frame
 	await process_frame
 
 	check(ui.description_label.text.contains("ウィンドル"), "New Windle village visible on startup")
-	check(ui.tile_pos == Vector2i(4, 5), "Hero spawns at village entry rather than map edge")
-	var npc_cell: TextureRect = ui.map_grid.get_child(4 * 10 + 2)
+	check(ui.tile_pos == Vector2i(10, 10), "Hero starts in Windle village's central plaza")
+	check(ui.map_grid.get_child(9 * 22 + 8).texture == ui.textures["village_stone"], "Village stone plaza uses sourced tile atlas")
+	var npc_cell: TextureRect = ui.map_grid.get_child(9 * 22 + 7)
 	var npc_field: TextureRect = null
 	for candidate in npc_cell.get_children():
 		if candidate is TextureRect:
@@ -125,13 +130,13 @@ func _run() -> void:
 	if npc_field != null:
 		check(npc_field.size == ui.hero_overlay.size, "NPC and player are identically one tile in exploration")
 	var village: Dictionary = ui.game.registry.by_id("maps", "field")
-	check(village.get("points", []).size() >= 9, "Village includes NPCs and hidden-discovery points")
-	check(str(village.get("rows", [])[3]).contains("p"), "Village road exists in map data")
+	check(village.get("points", []).size() >= 16, "Village includes populated NPCs and hidden-discovery points")
+	check(str(village.get("rows", [])[8]).contains("p"), "Village cobblestone road exists in map data")
 	var walk_start: Vector2 = ui.hero_overlay.position
 	var walk_start_world: Vector2 = ui.hero_overlay.position - ui.map_grid.position
 	ui._walk(1, 0)
 	check(ui.walk_sprite_frame == 0, "First step pose appears immediately")
-	check(ui.tile_pos == Vector2i(5, 5), "Mobile movement updates logical tile")
+	check(ui.tile_pos == Vector2i(11, 10), "Mobile movement updates logical tile")
 	check(ui.hero_overlay.position.distance_to(walk_start) < 1.0, "Hero does not teleport to target on first input")
 	await create_timer(0.17).timeout
 	var halfway: float = (ui.hero_overlay.position - ui.map_grid.position).distance_to(walk_start_world)
@@ -198,10 +203,10 @@ func _run() -> void:
 	var up: Button = pad.get_child(1)
 	check(up.custom_minimum_size.x >= 90 and up.custom_minimum_size.y >= 80, "Directional touch target is at least 90x80")
 	ui._begin_hold(Vector2i(1, 0))
-	check(ui.tile_pos == Vector2i(6, 5), "Holding direction moves immediately")
+	check(ui.tile_pos == Vector2i(12, 10), "Holding direction moves immediately")
 	await create_timer(0.48).timeout
 	ui._process(0.25)
-	check(ui.tile_pos == Vector2i(7, 5), "Held direction repeats movement")
+	check(ui.tile_pos == Vector2i(13, 10), "Held direction repeats movement")
 	await create_timer(0.48).timeout
 	ui._end_hold()
 	check(ui.held_direction == Vector2i.ZERO, "Releasing direction stops movement")

@@ -21,6 +21,12 @@ func _test() -> void:
 		quit(1)
 		return
 	verify(session.registry.records("maps").size() == 3, "Village, overworld, and cave all load")
+	var village: Dictionary = session.registry.by_id("maps", "field")
+	verify(village.get("rows", []).size() == 16, "Windle village has 16 rows")
+	verify(str(village.get("rows", [""])[0]).length() == 22, "Windle village is 22 tiles wide")
+	verify(village.get("points", []).size() >= 16, "Windle village has populated NPCs and locations")
+	for phase in ["2", "3"]:
+		verify(village.get("phase_rows", {}).get(phase, []).size() == 16, "Windle phase " + phase + " preserves size")
 	var world_map: Dictionary = session.registry.by_id("maps", "world_map")
 	verify(world_map.get("rows", []).size() == 24, "Overworld is twenty-four rows tall")
 	verify(str(world_map.get("rows", [""])[0]).length() == 40, "Overworld is forty tiles wide")
@@ -86,6 +92,14 @@ func _test() -> void:
 	verify(herb_session.initialize(), "Independent item session")
 	verify(herb_session.grant_item("healing_herb"), "Slime reward enters inventory")
 	verify(herb_session.count_item("healing_herb") == 1, "Herbs counted correctly")
+	herb_session.remember_party_health([{"id": "hero", "hp": 12}])
+	verify(herb_session.party_health("hero", 42) == 12, "Damage persists between battles")
+	herb_session.restore_party_health()
+	verify(herb_session.party_health("hero", 42) == 42, "Rest fully restores party HP")
+	verify(herb_session.run_event("help_herbalist"), "Herbalist quest can be completed")
+	verify(not herb_session.run_event("help_herbalist"), "Herbalist reward is one-time")
+	verify(herb_session.run_event("hear_elder_warning"), "Elder dialogue quest progresses")
+	verify(herb_session.run_event("ask_inn_supplies"), "Inn has first-visit supplies")
 	var slime: Dictionary = {}
 	for enemy_record in battle_defs["enemies"]:
 		if enemy_record["id"] == "slime":

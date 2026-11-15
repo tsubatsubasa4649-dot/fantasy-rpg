@@ -4,7 +4,7 @@ const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const SpriteAnimation = preload("res://scripts/sprite_animation.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG PLAY-23 / CAMERA-22"
+const BUILD_ID := "RPG VILLAGE-24 / CAMERA-22"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -204,6 +204,42 @@ func _load_art() -> void:
 	_load_party_atlas()
 	_load_walk_frames()
 	_load_world_tiles()
+	_load_village_tiles()
+
+func _load_village_tiles() -> void:
+	# This is a human-approved external pixel-art sheet, resized for 16px tiles,
+	# not procedurally generated graphics. Each tile is a direct atlas crop.
+	var source: String = "res://assets/village_atlas.b64"
+	if not FileAccess.file_exists(source):
+		push_warning("Village terrain atlas missing; using legacy tiles")
+		return
+	var image := Image.new()
+	var bytes: PackedByteArray = Marshalls.base64_to_raw(FileAccess.get_file_as_string(source).strip_edges())
+	if image.load_png_from_buffer(bytes) != OK or image.get_width() != 64 or image.get_height() != 64:
+		push_warning("Village atlas failed decoding")
+		return
+	var atlas: Texture2D = ImageTexture.create_from_image(image)
+	var ids: Array[String] = [
+		"village_grass", "village_shadow", "village_dirt", "village_stone",
+		"village_flowers", "village_bush", "village_wheat", "village_gravel",
+		"village_pebbles", "village_moss", "village_water", "village_sand",
+		"village_leaves", "village_tall_grass", "village_soil", "village_cobble"
+	]
+	for index in range(ids.size()):
+		var tile := AtlasTexture.new()
+		tile.atlas = atlas
+		tile.region = Rect2((index % 4) * SOURCE_TILE_SIZE, (index / 4) * SOURCE_TILE_SIZE, SOURCE_TILE_SIZE, SOURCE_TILE_SIZE)
+		tile.filter_clip = true
+		textures[ids[index]] = tile
+
+func _village_tile(symbol: String) -> Texture2D:
+	var legend: Dictionary = {
+		".": "village_grass", "p": "village_cobble", "d": "village_dirt",
+		"s": "village_stone", "f": "village_flowers", "b": "village_bush",
+		"t": "village_shadow", "w": "village_wheat", "r": "village_gravel",
+		"H": "village_stone", "#": "wall"
+	}
+	return textures.get(str(legend.get(symbol, "village_grass")), textures.get("wall" if symbol == "#" else "ground"))
 
 func _load_world_tiles() -> void:
 	# Read one 16x16 pixel sample of each terrain from the artist-supplied
@@ -423,7 +459,7 @@ func _build_ui() -> void:
 	hud_panel.add_child(hud_title)
 
 	build_label = Label.new()
-	build_label.text = "PLAY-23"
+	build_label.text = "VILLAGE-24"
 	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	build_label.add_theme_font_size_override("font_size", 11)
 	build_label.add_theme_color_override("font_color", Color("#9fb5d8"))
@@ -871,7 +907,7 @@ func _draw_map() -> void:
 			cell.stretch_mode = TextureRect.STRETCH_SCALE
 			var symbol: String = str(rows[y]).substr(x, 1)
 			var art_id: String = "wall" if symbol == "#" else "ground"
-			var tile_art: Texture2D = _world_tile(symbol, x, y) if is_world else textures.get(art_id, null)
+			var tile_art: Texture2D = _world_tile(symbol, x, y) if is_world else (_village_tile(symbol) if location_id == "field" else textures.get(art_id, null))
 			cell.texture = tile_art
 			if tile_art == null:
 				var placeholder := ColorRect.new()
@@ -983,7 +1019,7 @@ func _walk(dx: int, dy: int) -> void:
 	var rows: Array = _current_rows()
 	if goal.y < 0 or goal.y >= rows.size() or goal.x < 0 or goal.x >= str(rows[goal.y]).length():
 		return
-	if str(rows[goal.y]).substr(goal.x, 1) in ["#", "H", "~"]:
+	if str(rows[goal.y]).substr(goal.x, 1) in ["#", "H", "~", "t"]:
 		return
 	pending_choices = false
 	action_scroll.visible = false
@@ -1030,6 +1066,10 @@ func _perform(action: Dictionary) -> void:
 	if action.has("event"):
 		var event_id: String = str(action["event"])
 		if game.run_event(event_id):
+			if event_id == "rest_at_inn":
+				game.restore_party_health()
+			if action.has("reward_item"):
+				game.grant_item(str(action["reward_item"]))
 			var recruited_into_party: bool = false
 			if event_id.begins_with("recruit_"):
 				var current_party: Array = game.active_party()
@@ -1096,6 +1136,8 @@ func _begin_battle(enemy_id: String) -> void:
 		_show_message("まだ封印は解けていない。世界の変化を待とう。")
 		return
 	battle.begin(enemy, game.state.get("party", []), game.registry.records("characters"), battle_data, game.count_item("healing_herb"))
+	for ally in battle.allies:
+		ally["hp"] = game.party_health(str(ally["id"]), int(ally["max_hp"]))
 	if battle.allies.is_empty():
 		_show_message("戦闘できる仲間がいない。")
 		return
@@ -1164,6 +1206,8 @@ func _choose_battle(action: String) -> void:
 	for herb_index in range(int(result.get("herbs_used", 0))):
 		game.consume_item("healing_herb")
 	_show_message(str(result.get("text", "")))
+	if result.get("resolved", false):
+		game.remember_party_health(battle.allies)
 	if result.get("resolved", false) and battle.finished:
 		battle_active = false
 		_play_music_for_location()
@@ -1179,7 +1223,8 @@ func _choose_battle(action: String) -> void:
 		else:
 			_show_message("全滅。宿屋で目を覚ました。（2日経過）")
 			location_id = "field"
-			tile_pos = Vector2i(4, 2)
+			tile_pos = Vector2i(10, 10)
+			game.restore_party_health()
 			game.advance_days(2)
 	_refresh()
 

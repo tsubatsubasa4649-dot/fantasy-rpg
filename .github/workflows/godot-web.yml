@@ -55,6 +55,7 @@ jobs:
         run: |
           echo "START PHASE2"; timeout 35s godot --headless --path godot --script res://tests/test_phase2.gd
           echo "START PHASE3"; timeout 35s godot --headless --path godot --script res://tests/test_phase3.gd
+          echo "START VILLAGE"; timeout 35s godot --headless --path godot --script res://tests/test_village.gd
           echo "START UI"; timeout 35s godot --headless --path godot --script res://tests/test_ui_smoke.gd
 
       - name: Diagnose Web export templates
@@ -66,12 +67,12 @@ jobs:
         run: |
           mkdir -p godot-play
           # Fresh asset basename invalidates Safari's cached .pck/.wasm/.js files.
-          godot --headless --verbose --path godot --export-release "Web" "$GITHUB_WORKSPACE/godot-play/fantasy-play23.html"
-          mv godot-play/fantasy-play23.html godot-play/index.html
+          godot --headless --verbose --path godot --export-release "Web" "$GITHUB_WORKSPACE/godot-play/fantasy-village24.html"
+          mv godot-play/fantasy-village24.html godot-play/index.html
           test -s godot-play/index.html
-          test -s godot-play/fantasy-play23.pck
-          test -s godot-play/fantasy-play23.wasm
-          grep -q "fantasy-play23" godot-play/index.html
+          test -s godot-play/fantasy-village24.pck
+          test -s godot-play/fantasy-village24.wasm
+          grep -q "fantasy-village24" godot-play/index.html
 
       - name: Commit browser build without touching original HTML game
         run: |

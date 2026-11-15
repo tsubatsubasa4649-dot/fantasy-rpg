@@ -280,6 +280,150 @@
         }
       ],
       "time_cost": 0
+    },
+    {
+      "id": "hear_elder_warning",
+      "when": {
+        "flag_is": [
+          "elder_warning",
+          false
+        ]
+      },
+      "effects": [
+        {
+          "set_flag": [
+            "elder_warning",
+            true
+          ]
+        }
+      ],
+      "time_cost": 0
+    },
+    {
+      "id": "help_herbalist",
+      "when": {
+        "flag_is": [
+          "herbalist_helped",
+          false
+        ]
+      },
+      "effects": [
+        {
+          "set_flag": [
+            "herbalist_helped",
+            true
+          ]
+        }
+      ],
+      "time_cost": 0
+    },
+    {
+      "id": "listen_child",
+      "when": {
+        "flag_is": [
+          "child_rumor_heard",
+          false
+        ]
+      },
+      "effects": [
+        {
+          "set_flag": [
+            "child_rumor_heard",
+            true
+          ]
+        }
+      ],
+      "time_cost": 0
+    },
+    {
+      "id": "help_farmer",
+      "when": {
+        "flag_is": [
+          "farmer_helped",
+          false
+        ]
+      },
+      "effects": [
+        {
+          "set_flag": [
+            "farmer_helped",
+            true
+          ]
+        }
+      ],
+      "time_cost": 0
+    },
+    {
+      "id": "meet_gate_guard",
+      "when": {
+        "flag_is": [
+          "gate_guard_heard",
+          false
+        ]
+      },
+      "effects": [
+        {
+          "set_flag": [
+            "gate_guard_heard",
+            true
+          ]
+        }
+      ],
+      "time_cost": 0
+    },
+    {
+      "id": "inspect_shrine",
+      "when": {
+        "flag_is": [
+          "shrine_inspected",
+          false
+        ]
+      },
+      "effects": [
+        {
+          "set_flag": [
+            "shrine_inspected",
+            true
+          ]
+        }
+      ],
+      "time_cost": 0
+    },
+    {
+      "id": "ask_inn_supplies",
+      "when": {
+        "flag_is": [
+          "inn_supplies_taken",
+          false
+        ]
+      },
+      "effects": [
+        {
+          "set_flag": [
+            "inn_supplies_taken",
+            true
+          ]
+        }
+      ],
+      "time_cost": 0
+    },
+    {
+      "id": "hear_inn_rumor",
+      "when": {
+        "flag_is": [
+          "inn_rumor_heard",
+          false
+        ]
+      },
+      "effects": [
+        {
+          "set_flag": [
+            "inn_rumor_heard",
+            true
+          ]
+        }
+      ],
+      "time_cost": 0
     }
   ]
 }

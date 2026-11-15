@@ -33,7 +33,17 @@
   "initial_flags": {
     "village_helped": false,
     "forest_clue": false,
-    "refugees_saved": false
+    "refugees_saved": false,
+    "windle_sign_read": false,
+    "windle_well_discovered": false,
+    "elder_warning": false,
+    "herbalist_helped": false,
+    "child_rumor_heard": false,
+    "farmer_helped": false,
+    "gate_guard_heard": false,
+    "shrine_inspected": false,
+    "inn_supplies_taken": false,
+    "inn_rumor_heard": false
   },
   "deadline_ending_id": "ED_END",
   "initial_day": 0
