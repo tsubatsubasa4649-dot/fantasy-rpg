@@ -41,7 +41,7 @@ var screen_mode: String = "explore"
 var cell_size: int = 44
 const SOURCE_TILE_SIZE: int = 16
 const CAMERA_COLS: int = 8
-const CAMERA_ROWS: int = 7
+const CAMERA_ROWS: int = 6
 var button_size: Vector2 = Vector2(94, 74)
 var last_point_id: String = ""
 var last_phase: int = 0
@@ -589,7 +589,7 @@ func _layout_ui() -> void:
 	var h: float = screen.y
 	var margin: float = 12.0
 	var header_h: float = clampf(h * 0.075, 65, 78)
-	var map_h: float = clampf(h * 0.42, 260, 390)
+	var map_h: float = clampf(h * 0.36, 230, 355)
 	var dialogue_h: float = clampf(h * 0.082, 64, 82)
 	var actions_h: float = clampf(h * 0.12, 100, 112)
 	var bottom_h: float = h - header_h - map_h - dialogue_h - actions_h - 50.0
