@@ -82,5 +82,22 @@ func _test() -> void:
 	verify(team_fight.won, "Four-member party wins boss")
 	verify(team.run_event("defeat_darklord"), "Winning battle sets data flag")
 	verify(team.finish("ED_DARKLORD"), "Darklord ending completes")
+	var herb_session = GameSession.new()
+	verify(herb_session.initialize(), "Independent item session")
+	verify(herb_session.grant_item("healing_herb"), "Slime reward enters inventory")
+	verify(herb_session.count_item("healing_herb") == 1, "Herbs counted correctly")
+	var slime: Dictionary = {}
+	for enemy_record in battle_defs["enemies"]:
+		if enemy_record["id"] == "slime":
+			slime = enemy_record
+	var herb_fight = BattleEngine.new()
+	herb_fight.begin(slime, herb_session.active_party(), herb_session.registry.records("characters"), battle_defs, herb_session.count_item("healing_herb"))
+	verify(not herb_fight.choose("herb").get("ok", false), "Cannot waste herbs at full HP")
+	herb_fight.choose("guard")
+	var herb_result: Dictionary = herb_fight.choose("herb")
+	verify(herb_result.get("ok", false) and herb_result.get("herbs_used", 0) == 1, "Herb heals damaged ally")
+	verify(herb_fight.herbs_available == 0, "Battle herb stock depleted")
+	verify(herb_session.consume_item("healing_herb"), "Herb is consumed")
+	verify(herb_session.count_item("healing_herb") == 0 and not herb_session.consume_item("healing_herb"), "Used herb cannot be reused")
 	print("PHASE 3 FAILURES: ", failures)
 	quit(1 if failures > 0 else 0)

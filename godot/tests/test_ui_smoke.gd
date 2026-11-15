@@ -177,6 +177,7 @@ func _run() -> void:
 	for track in ["field", "cave", "battle", "step", "confirm", "attack", "hit"]:
 		check(ResourceLoader.exists("res://audio/" + track + ".wav"), "Original music track imported: " + track)
 	check(ui.management_panel.get_child_count() == 6, "Music and audio test are both in menu")
+	check(ui._quest_hint().contains("リッキー"), "Adventure guide starts with a clear objective")
 	ui._audio_diagnostic()
 	check(ui.audio_unlocked, "Explicit audio test unlocks the playback path")
 	check(ui.current_music_id == "field", "Audio test chooses current region BGM")
@@ -206,6 +207,7 @@ func _run() -> void:
 	check(ui.held_direction == Vector2i.ZERO, "Releasing direction stops movement")
 	check(ui.audio_unlocked, "First input unlocks browser audio")
 	check(ui.battle_commands.get_child(0).custom_minimum_size.y >= 70, "Battle command buttons have large touch targets")
+	check(ui.battle_commands.get_child_count() == 4, "Battle commands include healing herb")
 	ui._begin_battle("slime")
 	check(ui.battle_active, "Encounter enters battle scene")
 	check(ui.current_music_id == "battle", "Battle changes original BGM theme")

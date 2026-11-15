@@ -164,6 +164,21 @@ func begin_next_loop(carryover: Array = []) -> bool:
 	new_run(carryover)
 	return true
 
+func grant_item(item_id: String) -> bool:
+	if registry.by_id("items", item_id).is_empty():
+		return false
+	state["items"].append(item_id)
+	return true
+
+func count_item(item_id: String) -> int:
+	return state.get("items", []).count(item_id)
+
+func consume_item(item_id: String) -> bool:
+	if count_item(item_id) == 0:
+		return false
+	state["items"].erase(item_id)
+	return true
+
 func save_game(slot: int) -> bool:
 	return saver.save_slot(slot, state, meta)
 

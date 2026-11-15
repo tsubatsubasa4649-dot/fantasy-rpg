@@ -4,7 +4,7 @@ const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const SpriteAnimation = preload("res://scripts/sprite_animation.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG CAMERA-22 / ZOOM 3X"
+const BUILD_ID := "RPG PLAY-23 / CAMERA-22"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -83,7 +83,7 @@ func _ready() -> void:
 	_build_ui()
 	_setup_music()
 	_restore_location()
-	_show_message("魔王を倒せ。それだけが、思い出せる使命だった。")
+	_show_message("魔王を倒せ。十字キーで移動し、近くで「話す・調べる」。メニューで冒険の目標を確認。")
 	_refresh()
 	_play_music_for_location()
 
@@ -423,7 +423,7 @@ func _build_ui() -> void:
 	hud_panel.add_child(hud_title)
 
 	build_label = Label.new()
-	build_label.text = "CAMERA-22"
+	build_label.text = "PLAY-23"
 	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	build_label.add_theme_font_size_override("font_size", 11)
 	build_label.add_theme_color_override("font_color", Color("#9fb5d8"))
@@ -556,7 +556,7 @@ func _build_ui() -> void:
 	combat_controls.add_theme_constant_override("separation", 7)
 	root_column.add_child(combat_controls)
 	battle_commands = combat_controls
-	for entry in [["攻撃", "attack"], ["技", "skill"], ["防御", "guard"]]:
+	for entry in [["攻撃", "attack"], ["技", "skill"], ["防御", "guard"], ["薬草", "herb"]]:
 		var command: String = str(entry[1])
 		var combat_button := _add_button(combat_controls, str(entry[0]), func(): _choose_battle(command))
 		combat_button.custom_minimum_size = Vector2(145, 85)
@@ -646,7 +646,7 @@ func _layout_ui() -> void:
 	combat_controls.position = Vector2(margin, control_y + 15)
 	combat_controls.size = Vector2(w - margin * 2.0, 95)
 	for child in combat_controls.get_children():
-		child.custom_minimum_size = Vector2((w - 42) / 3.0, 84)
+		child.custom_minimum_size = Vector2((w - 30.0 - 7.0 * float(combat_controls.get_child_count() - 1)) / float(combat_controls.get_child_count()), 84)
 	management_panel.position = Vector2(margin, header_h + 13)
 	management_panel.size = Vector2(w - margin * 2.0, 74)
 	for child in management_panel.get_children():
@@ -655,12 +655,40 @@ func _layout_ui() -> void:
 		_draw_map()
 		call_deferred("_sync_hero_overlay")
 
+func _quest_hint() -> String:
+	if not str(game.state.get("ending", "")).is_empty():
+		return "物語は完結した。メニューの「周回」で新しい旅へ。"
+	var flags: Dictionary = game.state.get("flags", {})
+	var companions: Array = game.state.get("recruited", [])
+	var phase: int = int(game.state.get("phase", 1))
+	if not bool(flags.get("village_helped", false)):
+		return "目標：村の西側にいるリッキーに話し、夜回りを手伝おう。"
+	if not companions.has("ch_ricky"):
+		return "目標：もう一度リッキーに話しかけ、仲間に誘おう。"
+	if phase == 1 and not bool(flags.get("forest_clue", false)):
+		return "目標：村のメリルに話し、森の手がかりを聞こう。"
+	if phase == 1 and not companions.has("ch_meri"):
+		return "目標：もう一度メリルに話しかけ、仲間に誘おう。"
+	if phase >= 2 and not companions.has("ch_goro"):
+		return "目標：村でゴローを探し、避難民を救って仲間に誘おう。"
+	if phase >= 2 and companions.has("ch_meri") and not bool(flags.get("bridge_evidence", false)):
+		return "寄り道：村の壊れた橋を調査し、リッキーとメリルの物語を進めよう。"
+	if bool(flags.get("bridge_evidence", false)) and not bool(flags.get("bridge_reconciled", false)):
+		return "寄り道：メリルを編成し、村の橋で和解の証拠を示そう。"
+	if bool(flags.get("bridge_reconciled", false)):
+		return "橋の向こうEDが解放済み。村の橋で結末を選ぶか、魔王を目指そう。"
+	if phase < 3:
+		return "目標：世界地図を探索。宿屋の遠征で日数を進めると、魔王の封印が解ける。"
+	return "目標：世界地図の北東(30,7)から風鳴りの洞窟へ。最深部の魔王の影を倒そう。"
+
 func _toggle_menu() -> void:
 	_unlock_audio()
 	if battle_active:
 		return
 	management_panel.visible = not management_panel.visible
 	menu_button.text = "閉じる" if management_panel.visible else "メニュー"
+	if management_panel.visible:
+		_show_message(_quest_hint() + "\nセーブで進行を保存。ロードで前の旅に戻れる。")
 
 
 func _add_pad_gap(parent: GridContainer) -> void:
@@ -936,6 +964,10 @@ func _show_nearby_actions() -> void:
 		var entry: Dictionary = action
 		if not game.can(entry.get("when", {"always": true})):
 			continue
+		if entry.has("event"):
+			var event_id: String = str(entry["event"])
+			if event_id in game.state.get("events_completed", []) and not event_id in ["rest_at_inn", "extended_expedition"]:
+				continue
 		var option := _add_button(action_list, str(entry.get("label", "進む")), func(): _perform(entry))
 		option.custom_minimum_size.y = 53
 
@@ -998,7 +1030,17 @@ func _perform(action: Dictionary) -> void:
 	if action.has("event"):
 		var event_id: String = str(action["event"])
 		if game.run_event(event_id):
-			_show_message(str(action.get("success_message", "イベントが進行した：" + event_id)))
+			var recruited_into_party: bool = false
+			if event_id.begins_with("recruit_"):
+				var current_party: Array = game.active_party()
+				if current_party.size() < 4:
+					for companion_id in game.state.get("recruited", []):
+						if not companion_id in current_party:
+							var selected: Array = current_party.slice(1)
+							selected.append(companion_id)
+							recruited_into_party = game.set_party(selected)
+							break
+			_show_message(str(action.get("success_message", "イベントが進行した：" + event_id)) + (" 戦闘メンバーに加入！" if recruited_into_party else ""))
 		else:
 			_show_message(str(action.get("fail_message", "今はそのイベントを進められない。加入条件・時期・編成を確認しよう。")))
 	elif action.has("battle"):
@@ -1053,7 +1095,7 @@ func _begin_battle(enemy_id: String) -> void:
 	if enemy.is_empty() or not game.can(enemy.get("when", {"always":false})):
 		_show_message("まだ封印は解けていない。世界の変化を待とう。")
 		return
-	battle.begin(enemy, game.state.get("party", []), game.registry.records("characters"), battle_data)
+	battle.begin(enemy, game.state.get("party", []), game.registry.records("characters"), battle_data, game.count_item("healing_herb"))
 	if battle.allies.is_empty():
 		_show_message("戦闘できる仲間がいない。")
 		return
@@ -1095,7 +1137,7 @@ func _refresh_battle() -> void:
 	management_panel.visible = false
 	menu_button.text = "メニュー"
 	_end_hold()
-	battle_status.text = battle.status_text() + "\nコマンド：" + battle.awaiting_name()
+	battle_status.text = battle.status_text() + "\n薬草 %d個｜コマンド：%s" % [game.count_item("healing_herb"), battle.awaiting_name()]
 	for button in battle_commands.get_children():
 		if button is Button:
 			button.disabled = battle.finished
@@ -1117,12 +1159,17 @@ func _choose_battle(action: String) -> void:
 		_play_sfx("hit")
 		_play_attack_feedback()
 	if not result.get("ok", false):
+		_show_message(str(result.get("text", "その行動はできない。")))
 		return
+	for herb_index in range(int(result.get("herbs_used", 0))):
+		game.consume_item("healing_herb")
 	_show_message(str(result.get("text", "")))
 	if result.get("resolved", false) and battle.finished:
 		battle_active = false
 		_play_music_for_location()
 		if battle.won:
+			if battle_enemy_id == "slime":
+				game.grant_item("healing_herb")
 			var on_win: String = str(battle.enemy.get("on_win_event", ""))
 			if not on_win.is_empty():
 				game.run_event(on_win)

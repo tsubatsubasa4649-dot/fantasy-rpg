@@ -8,8 +8,9 @@ var finished: bool = false
 var won: bool = false
 var lost: bool = false
 var round_number: int = 1
+var herbs_available: int = 0
 
-func begin(enemy_record: Dictionary, party_ids: Array, character_records: Array, battle_defs: Dictionary) -> void:
+func begin(enemy_record: Dictionary, party_ids: Array, character_records: Array, battle_defs: Dictionary, healing_herbs: int = 0) -> void:
 	enemy = enemy_record.duplicate(true)
 	enemy["hp"] = int(enemy.get("max_hp", 1))
 	allies.clear()
@@ -19,6 +20,7 @@ func begin(enemy_record: Dictionary, party_ids: Array, character_records: Array,
 	won = false
 	lost = false
 	round_number = 1
+	herbs_available = maxi(0, healing_herbs)
 	for character_id in party_ids:
 		var character: Dictionary = {}
 		for c in character_records:
@@ -47,8 +49,13 @@ func awaiting_name() -> String:
 	return str(allies[command_cursor]["name"])
 
 func choose(action: String) -> Dictionary:
-	if finished or not action in ["attack", "skill", "guard"]:
+	if finished or not action in ["attack", "skill", "guard", "herb"]:
 		return {"ok": false, "text": "入力できないコマンド。"}
+	if action == "herb":
+		if herbs_available <= queued.count("herb"):
+			return {"ok": false, "text": "薬草がない。洞窟のスライムから入手できる。"}
+		if not _has_injured_ally():
+			return {"ok": false, "text": "今は誰も傷ついていない。"}
 	var name: String = awaiting_name()
 	if name.is_empty():
 		return {"ok": false, "text": "入力待ちはない。"}
@@ -58,9 +65,16 @@ func choose(action: String) -> Dictionary:
 		return {"ok": true, "resolved": false, "text": name + "：" + action + "を予約"}
 	return resolve_round()
 
+func _has_injured_ally() -> bool:
+	for unit in allies:
+		if int(unit["hp"]) > 0 and int(unit["hp"]) < int(unit["max_hp"]):
+			return true
+	return false
+
 func resolve_round() -> Dictionary:
 	var logs: Array[String] = []
 	var action_index: int = 0
+	var herbs_used: int = 0
 	for unit in allies:
 		if int(unit["hp"]) <= 0:
 			continue
@@ -69,6 +83,20 @@ func resolve_round() -> Dictionary:
 		if action == "guard":
 			unit["guard"] = true
 			logs.append(str(unit["name"]) + "は身構えた。")
+			continue
+		if action == "herb":
+			var target_ally: Dictionary = {}
+			var missing_hp: int = 0
+			for ally in allies:
+				var missing: int = int(ally["max_hp"]) - int(ally["hp"])
+				if int(ally["hp"]) > 0 and missing > missing_hp:
+					target_ally = ally
+					missing_hp = missing
+			if not target_ally.is_empty():
+				var recovered: int = mini(25, missing_hp)
+				target_ally["hp"] = int(target_ally["hp"]) + recovered
+				herbs_used += 1
+				logs.append("%sは薬草を使った。%sのHPが%d回復" % [str(unit["name"]), str(target_ally["name"]), recovered])
 			continue
 		var base_damage: int = int(unit["skill"]) if action == "skill" else int(unit["attack"])
 		var damage: int = maxi(1, base_damage - int(enemy.get("defense", 0)))
@@ -100,10 +128,11 @@ func resolve_round() -> Dictionary:
 			logs.append("全滅した……")
 	for unit in allies:
 		unit["guard"] = false
+	herbs_available -= herbs_used
 	queued.clear()
 	command_cursor = 0
 	round_number += 1
-	return {"ok": true, "resolved": true, "text": "\n".join(logs), "won": won, "lost": lost}
+	return {"ok": true, "resolved": true, "text": "\n".join(logs), "won": won, "lost": lost, "herbs_used": herbs_used}
 
 func status_text() -> String:
 	var text: String = "%s HP %d/%d\n" % [str(enemy.get("name","敵")), int(enemy.get("hp",0)), int(enemy.get("max_hp",1))]
