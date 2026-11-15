@@ -81,6 +81,10 @@ jobs:
           cp godot/village-screen.png godot-play/village-screen.png
           base64 -w0 godot/village-screen.png > godot-play/village-screen.b64
           test -s godot-play/village-screen.b64
+          test -s godot/village-plaza-screen.png
+          cp godot/village-plaza-screen.png godot-play/village-plaza-screen.png
+          base64 -w0 godot/village-plaza-screen.png > godot-play/village-plaza-screen.b64
+          test -s godot-play/village-plaza-screen.b64
 
       - name: Commit browser build without touching original HTML game
         run: |
