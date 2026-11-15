@@ -31,7 +31,7 @@ func _run() -> void:
 			check(art is AtlasTexture and art.get_width() == 16 and art.get_height() == 16, "Terrain is a single 16px asset crop: " + world_art_id)
 	check(not ui.textures.has("world_grass_variants"), "No symmetry-generated terrain variants")
 	check(ui.map_frame.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST, "Map uses nearest-neighbor pixel filtering")
-	check(ui.CAMERA_COLS == 8 and ui.CAMERA_ROWS == 7, "Closer camera viewport is 8 by 7 tiles")
+	check(ui.CAMERA_COLS == 8 and ui.CAMERA_ROWS == 6, "Closer camera viewport is 8 by 6 tiles")
 	check(ui.cell_size >= 48, "16px sprites display at least 3x at the reference portrait viewport")
 	check(ui.cell_size % 16 == 0, "Display tiles use integer 16px scale")
 	check(ui.hero_overlay.size == Vector2(ui.cell_size, ui.cell_size), "Player sprite occupies exactly one map tile")
@@ -115,13 +115,14 @@ func _run() -> void:
 	check(village.get("points", []).size() >= 9, "Village includes NPCs and hidden-discovery points")
 	check(str(village.get("rows", [])[3]).contains("p"), "Village road exists in map data")
 	var walk_start: Vector2 = ui.hero_overlay.position
+	var walk_start_world: Vector2 = ui.hero_overlay.position - ui.map_grid.position
 	ui._walk(1, 0)
 	check(ui.walk_sprite_frame == 0, "First step pose appears immediately")
 	check(ui.tile_pos == Vector2i(5, 5), "Mobile movement updates logical tile")
 	check(ui.hero_overlay.position.distance_to(walk_start) < 1.0, "Hero does not teleport to target on first input")
 	await create_timer(0.17).timeout
-	var halfway: float = ui.hero_overlay.position.distance_to(walk_start)
-	check(halfway > 2.0 and halfway < float(ui.cell_size) - 2.0, "Hero smoothly moves between neighboring tile coordinates")
+	var halfway: float = (ui.hero_overlay.position - ui.map_grid.position).distance_to(walk_start_world)
+	check(halfway > 2.0 and halfway < float(ui.cell_size) - 2.0, "Hero world coordinate moves smoothly while camera follows")
 	check(ui.walking, "Movement remains animated after logical grid step")
 	check(ui.hero_overlay != null and ui.hero_overlay.texture != null, "Hero is persistent independent of terrain tiles")
 	check(ui.walk_textures.size() == 4, "Walking animation has all four directions")
