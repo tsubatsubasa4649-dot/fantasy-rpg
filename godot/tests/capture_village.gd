@@ -26,4 +26,18 @@ func _capture() -> void:
 		quit(1)
 		return
 	print("SCREENSHOT SAVED: ", image.get_width(), "x", image.get_height())
+	# Move to the central plaza and capture the well, dialogue landmarks and stalls.
+	game.tile_pos = Vector2i(10, 8)
+	game._refresh()
+	game.map_grid.position = game._camera_grid_position(game.tile_pos)
+	game.props_overlay.position = game.map_grid.position
+	game._sync_hero_overlay()
+	await process_frame
+	await process_frame
+	var plaza_image: Image = root.get_texture().get_image()
+	if plaza_image == null or plaza_image.is_empty() or plaza_image.save_png("res://village-plaza-screen.png") != OK:
+		push_error("SCREENSHOT: plaza save failed")
+		quit(1)
+		return
+	print("PLAZA SCREENSHOT SAVED")
 	quit(0)
