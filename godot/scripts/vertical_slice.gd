@@ -4,7 +4,7 @@ const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const SpriteAnimation = preload("res://scripts/sprite_animation.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG RENDER-20 / ASSET ONLY"
+const BUILD_ID := "RPG CAMERA-21 / CLOSER VIEW"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -40,8 +40,8 @@ var combat_controls: HBoxContainer
 var screen_mode: String = "explore"
 var cell_size: int = 44
 const SOURCE_TILE_SIZE: int = 16
-const CAMERA_COLS: int = 15
-const CAMERA_ROWS: int = 11
+const CAMERA_COLS: int = 11
+const CAMERA_ROWS: int = 8
 var button_size: Vector2 = Vector2(94, 74)
 var last_point_id: String = ""
 var last_phase: int = 0
@@ -423,7 +423,7 @@ func _build_ui() -> void:
 	hud_panel.add_child(hud_title)
 
 	build_label = Label.new()
-	build_label.text = "RENDER-20"
+	build_label.text = "CAMERA-21"
 	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	build_label.add_theme_font_size_override("font_size", 11)
 	build_label.add_theme_color_override("font_color", Color("#9fb5d8"))
