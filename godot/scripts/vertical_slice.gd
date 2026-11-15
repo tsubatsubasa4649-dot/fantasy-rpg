@@ -4,7 +4,7 @@ const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const SpriteAnimation = preload("res://scripts/sprite_animation.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG VILLAGE-25 / CAMERA-22"
+const BUILD_ID := "RPG VILLAGE-26 / CAMERA-22"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -65,6 +65,7 @@ var walk_elapsed: float = 0.0
 var walk_sprite_direction: int = 0
 var walk_sprite_frame: int = 1
 var walk_textures: Array = []
+var display_walk_frames: Array = []
 var character_walk_frames: Dictionary = {}
 var last_map_scene: String = ""
 var last_map_phase: int = 0
@@ -359,6 +360,18 @@ func _load_walk_frames() -> void:
 		var frames: Array = SpriteAnimation.decode_frames(profile)
 		character_walk_frames[character_id] = frames
 	walk_textures = character_walk_frames.get("hero", [])
+	display_walk_frames.clear()
+	# Keep source frame atlas data intact for combat/tests; crop only transparent
+	# margins of the generated source PNG for the on-screen hero.
+	for direction_frames in walk_textures:
+		var cropped_direction: Array = []
+		for original_frame in direction_frames:
+			var image: Image = original_frame.get_image()
+			if image != null and not image.is_empty():
+				cropped_direction.append(ImageTexture.create_from_image(_trim_transparent_padding(image)))
+			else:
+				cropped_direction.append(original_frame)
+		display_walk_frames.append(cropped_direction)
 	if walk_textures.size() == 4:
 		textures["hero_walk_atlas"] = walk_textures[0][0].atlas
 
@@ -374,6 +387,10 @@ func _set_hero_walk_frame(frame: int) -> void:
 		character_walk_frames.get("hero", []),
 		hero.get("walk_animation", {}), facing, walk_sprite_frame
 	)
+	if display_walk_frames.size() == 4:
+		var direction_row: int = _face_row(facing)
+		if display_walk_frames[direction_row].size() > walk_sprite_frame:
+			texture = display_walk_frames[direction_row][walk_sprite_frame]
 	if texture != null:
 		hero_overlay.texture = texture
 		hero_overlay.flip_h = false
@@ -522,7 +539,7 @@ func _build_ui() -> void:
 	hud_panel.add_child(hud_title)
 
 	build_label = Label.new()
-	build_label.text = "VILLAGE-25"
+	build_label.text = "VILLAGE-26"
 	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	build_label.add_theme_font_size_override("font_size", 11)
 	build_label.add_theme_color_override("font_color", Color("#9fb5d8"))

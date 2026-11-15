@@ -21,7 +21,7 @@ func _run() -> void:
 		return
 	var village: Dictionary = game.registry.by_id("maps", "field")
 	var village_start: Array = village.get("spawn", [])
-	check(village_start.size() == 2 and int(village_start[0]) == 12 and int(village_start[1]) == 7, "Village starts in central plaza")
+	check(village_start.size() == 2 and int(village_start[0]) == 14 and int(village_start[1]) == 5, "Village starts in central plaza")
 	check(village.get("points", []).size() >= 16, "Village has NPCs and discovery points")
 	for phase in ["1", "2", "3"]:
 		var rows: Array = village.get("rows", []) if phase == "1" else village.get("phase_rows", {}).get(phase, [])
@@ -35,7 +35,7 @@ func _run() -> void:
 		check(valid_width, "Phase " + phase + " has 22 columns")
 		if not valid_width:
 			continue
-		var start := Vector2i(12, 7)
+		var start := Vector2i(14, 5)
 		var queue: Array[Vector2i] = [start]
 		var visited: Dictionary = {}
 		visited[start] = true
@@ -68,7 +68,7 @@ func _run() -> void:
 			for action in point.get("actions", []):
 				if action.get("travel_to") == "field":
 					var arrive: Array = action.get("spawn", [])
-					check(arrive.size() == 2 and int(arrive[0]) == 12 and int(arrive[1]) == 7, "World-to-village entrance uses updated spawn")
+					check(arrive.size() == 2 and int(arrive[0]) == 14 and int(arrive[1]) == 5, "World-to-village entrance uses updated spawn")
 	check(game.run_event("read_village_sign"), "Village information board can be read")
 	check(game.run_event("discover_well_emblem"), "Village well discovery can be completed")
 	check(game.run_event("help_herbalist"), "Herbalist quest can be completed")

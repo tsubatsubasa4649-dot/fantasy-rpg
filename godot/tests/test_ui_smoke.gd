@@ -116,13 +116,13 @@ func _run() -> void:
 	ui._travel("world_map", [30, 7])
 	check(ui.location_id == "world_map" and ui.tile_pos == Vector2i(30, 7), "Cave returns to its world-map entrance")
 	ui.location_id = initial_location
-	ui.tile_pos = Vector2i(12, 7)
+	ui.tile_pos = Vector2i(14, 5)
 	ui._refresh()
 	await process_frame
 	await process_frame
 
 	check(ui.description_label.text.contains("ウィンドル"), "New Windle village visible on startup")
-	check(ui.tile_pos == Vector2i(12, 7), "Hero starts in Windle village's central plaza")
+	check(ui.tile_pos == Vector2i(14, 5), "Hero starts in Windle village's central plaza")
 	check(ui.map_grid.get_child(9 * 22 + 8).texture == ui.textures["village_stone"], "Village stone plaza uses sourced tile atlas")
 	var npc_cell: TextureRect = ui.map_grid.get_child(9 * 22 + 7)
 	var npc_field: TextureRect = null
@@ -140,7 +140,7 @@ func _run() -> void:
 	var walk_start_world: Vector2 = ui.hero_overlay.position - ui.map_grid.position
 	ui._walk(1, 0)
 	check(ui.walk_sprite_frame == 0, "First step pose appears immediately")
-	check(ui.tile_pos == Vector2i(13, 7), "Mobile movement updates logical tile")
+	check(ui.tile_pos == Vector2i(15, 5), "Mobile movement updates logical tile")
 	check(ui.hero_overlay.position.distance_to(walk_start) < 1.0, "Hero does not teleport to target on first input")
 	await create_timer(0.17).timeout
 	var halfway: float = (ui.hero_overlay.position - ui.map_grid.position).distance_to(walk_start_world)
@@ -148,6 +148,9 @@ func _run() -> void:
 	check(ui.walking, "Movement remains animated after logical grid step")
 	check(ui.hero_overlay != null and ui.hero_overlay.texture != null, "Hero is persistent independent of terrain tiles")
 	check(ui.walk_textures.size() == 4, "Walking animation has all four directions")
+	check(ui.display_walk_frames.size() == 4, "Hero artwork crops source transparency without editing the original atlas")
+	if ui.display_walk_frames.size() == 4:
+		check(ui.display_walk_frames[0][1].get_width() < 48, "On-screen hero uses tightly cropped walk sprite")
 	check(ui.character_walk_frames.size() == 4, "Walking loader handles all four character profiles")
 	for actor_id in ["ch_ricky", "ch_meri", "ch_goro"]:
 		var profile: Dictionary = ui.game.registry.by_id("characters", actor_id)
@@ -207,10 +210,10 @@ func _run() -> void:
 	var up: Button = pad.get_child(1)
 	check(up.custom_minimum_size.x >= 90 and up.custom_minimum_size.y >= 80, "Directional touch target is at least 90x80")
 	ui._begin_hold(Vector2i(1, 0))
-	check(ui.tile_pos == Vector2i(14, 7), "Holding direction moves immediately")
+	check(ui.tile_pos == Vector2i(16, 5), "Holding direction moves immediately")
 	await create_timer(0.48).timeout
 	ui._process(0.25)
-	check(ui.tile_pos == Vector2i(15, 7), "Held direction repeats movement")
+	check(ui.tile_pos == Vector2i(17, 5), "Held direction repeats movement")
 	await create_timer(0.48).timeout
 	ui._end_hold()
 	check(ui.held_direction == Vector2i.ZERO, "Releasing direction stops movement")
