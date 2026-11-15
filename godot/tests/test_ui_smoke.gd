@@ -46,6 +46,10 @@ func _run() -> void:
 		var ground: Texture2D = ui.textures["ground"]
 		check(ground.get_width() < 32 and ground.get_height() < 32, "Ground padding was cropped away")
 	check(ui.map_grid.get_child_count() == 352, "Village expands to 22x16 without changing the camera window")
+	check(ui.props_overlay.get_child_count() >= 13, "Village buildings and props draw above terrain")
+	for prop_art in ["village_cottage", "village_inn", "village_well", "village_tree", "village_market", "village_sign"]:
+		check(ui.textures.has(prop_art), "Village decor artwork loaded: " + prop_art)
+	check(ui.quest_panel.visible and ui.quest_label.text.contains("次の目標"), "Empty choice space becomes a visible adventure objective")
 	for art_id in ["village_grass", "village_cobble", "village_dirt", "village_flowers", "village_wheat"]:
 		check(ui.textures.has(art_id), "Village source atlas provides: " + art_id)
 		if ui.textures.has(art_id):
@@ -112,13 +116,13 @@ func _run() -> void:
 	ui._travel("world_map", [30, 7])
 	check(ui.location_id == "world_map" and ui.tile_pos == Vector2i(30, 7), "Cave returns to its world-map entrance")
 	ui.location_id = initial_location
-	ui.tile_pos = Vector2i(10, 10)
+	ui.tile_pos = Vector2i(12, 7)
 	ui._refresh()
 	await process_frame
 	await process_frame
 
 	check(ui.description_label.text.contains("ウィンドル"), "New Windle village visible on startup")
-	check(ui.tile_pos == Vector2i(10, 10), "Hero starts in Windle village's central plaza")
+	check(ui.tile_pos == Vector2i(12, 7), "Hero starts in Windle village's central plaza")
 	check(ui.map_grid.get_child(9 * 22 + 8).texture == ui.textures["village_stone"], "Village stone plaza uses sourced tile atlas")
 	var npc_cell: TextureRect = ui.map_grid.get_child(9 * 22 + 7)
 	var npc_field: TextureRect = null
@@ -136,7 +140,7 @@ func _run() -> void:
 	var walk_start_world: Vector2 = ui.hero_overlay.position - ui.map_grid.position
 	ui._walk(1, 0)
 	check(ui.walk_sprite_frame == 0, "First step pose appears immediately")
-	check(ui.tile_pos == Vector2i(11, 10), "Mobile movement updates logical tile")
+	check(ui.tile_pos == Vector2i(13, 7), "Mobile movement updates logical tile")
 	check(ui.hero_overlay.position.distance_to(walk_start) < 1.0, "Hero does not teleport to target on first input")
 	await create_timer(0.17).timeout
 	var halfway: float = (ui.hero_overlay.position - ui.map_grid.position).distance_to(walk_start_world)
@@ -203,10 +207,10 @@ func _run() -> void:
 	var up: Button = pad.get_child(1)
 	check(up.custom_minimum_size.x >= 90 and up.custom_minimum_size.y >= 80, "Directional touch target is at least 90x80")
 	ui._begin_hold(Vector2i(1, 0))
-	check(ui.tile_pos == Vector2i(12, 10), "Holding direction moves immediately")
+	check(ui.tile_pos == Vector2i(14, 7), "Holding direction moves immediately")
 	await create_timer(0.48).timeout
 	ui._process(0.25)
-	check(ui.tile_pos == Vector2i(13, 10), "Held direction repeats movement")
+	check(ui.tile_pos == Vector2i(15, 7), "Held direction repeats movement")
 	await create_timer(0.48).timeout
 	ui._end_hold()
 	check(ui.held_direction == Vector2i.ZERO, "Releasing direction stops movement")

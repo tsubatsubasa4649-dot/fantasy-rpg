@@ -4,7 +4,7 @@ const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const SpriteAnimation = preload("res://scripts/sprite_animation.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG VILLAGE-24 / CAMERA-22"
+const BUILD_ID := "RPG VILLAGE-25 / CAMERA-22"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -17,6 +17,9 @@ var status_label: Label
 var description_label: Label
 var message_label: Label
 var map_grid: GridContainer
+var props_overlay: Control
+var quest_panel: Panel
+var quest_label: Label
 var action_list: VBoxContainer
 var battle_panel: VBoxContainer
 var battle_status: Label
@@ -205,6 +208,7 @@ func _load_art() -> void:
 	_load_walk_frames()
 	_load_world_tiles()
 	_load_village_tiles()
+	_load_village_props()
 
 func _load_village_tiles() -> void:
 	# This is a human-approved external pixel-art sheet, resized for 16px tiles,
@@ -240,6 +244,65 @@ func _village_tile(symbol: String) -> Texture2D:
 		"H": "village_stone", "#": "wall"
 	}
 	return textures.get(str(legend.get(symbol, "village_grass")), textures.get("wall" if symbol == "#" else "ground"))
+
+func _load_village_props() -> void:
+	# 32px sprites generated as actual image assets, never painted by code.
+	var source: String = "res://assets/village_props.b64"
+	if not FileAccess.file_exists(source):
+		push_warning("Village building sprites missing")
+		return
+	var img := Image.new()
+	var bytes: PackedByteArray = Marshalls.base64_to_raw(FileAccess.get_file_as_string(source).strip_edges())
+	if img.load_png_from_buffer(bytes) != OK or img.get_width() != 128 or img.get_height() != 64:
+		push_warning("Village building sprite atlas failed decoding")
+		return
+	var sheet: Texture2D = ImageTexture.create_from_image(img)
+	var ids: Array[String] = [
+		"village_cottage", "village_inn", "village_well", "village_tree",
+		"village_market", "village_fence", "village_sign", "village_shrine"
+	]
+	for index in range(ids.size()):
+		var tile := AtlasTexture.new()
+		tile.atlas = sheet
+		tile.region = Rect2((index % 4) * 32, (index / 4) * 32, 32, 32)
+		tile.filter_clip = true
+		textures[ids[index]] = tile
+
+func _decorate_village(rows: Array) -> void:
+	for child in props_overlay.get_children():
+		props_overlay.remove_child(child)
+		child.queue_free()
+	if location_id != "field":
+		return
+	var props: Array = [
+		["village_inn", 16, 4],
+		["village_well", 8, 8],
+		["village_sign", 11, 9],
+		["village_sign", 19, 5],
+		["village_shrine", 10, 13],
+		["village_market", 15, 10],
+		["village_tree", 2, 2],
+		["village_tree", 19, 12],
+		["village_fence", 2, 11],
+		["village_fence", 18, 13]
+	]
+	for y in range(rows.size()):
+		for x in range(str(rows[y]).length()):
+			if str(rows[y]).substr(x, 1) == "H" and not (x == 16 and y == 4):
+				props.append(["village_cottage", x, y])
+	for prop in props:
+		var image_id: String = str(prop[0])
+		if not textures.has(image_id):
+			continue
+		var sprite := TextureRect.new()
+		sprite.texture = textures[image_id]
+		sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		sprite.stretch_mode = TextureRect.STRETCH_SCALE
+		sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		sprite.size = Vector2(cell_size * 2, cell_size * 2)
+		# Anchor the visual to the interactable cell, with its roof above the road.
+		sprite.position = Vector2((float(prop[1]) - 0.5) * cell_size, (float(prop[2]) - 1.0) * cell_size)
+		props_overlay.add_child(sprite)
 
 func _load_world_tiles() -> void:
 	# Read one 16x16 pixel sample of each terrain from the artist-supplied
@@ -459,7 +522,7 @@ func _build_ui() -> void:
 	hud_panel.add_child(hud_title)
 
 	build_label = Label.new()
-	build_label.text = "VILLAGE-24"
+	build_label.text = "VILLAGE-25"
 	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	build_label.add_theme_font_size_override("font_size", 11)
 	build_label.add_theme_color_override("font_color", Color("#9fb5d8"))
@@ -499,6 +562,9 @@ func _build_ui() -> void:
 	map_grid.add_theme_constant_override("v_separation", 0)
 	map_grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	map_center.add_child(map_grid)
+	props_overlay = Control.new()
+	props_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	map_center.add_child(props_overlay)
 	hero_overlay = TextureRect.new()
 	hero_overlay.custom_minimum_size = Vector2.ZERO
 	hero_overlay.size = _field_actor_rect().size
@@ -563,6 +629,16 @@ func _build_ui() -> void:
 	action_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	action_list.add_theme_constant_override("separation", 5)
 	action_scroll.add_child(action_list)
+
+	quest_panel = Panel.new()
+	quest_panel.add_theme_stylebox_override("panel", _panel_style(Color("#152b43"), Color("#637da4")))
+	quest_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root_column.add_child(quest_panel)
+	quest_label = Label.new()
+	quest_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	quest_label.add_theme_font_size_override("font_size", 15)
+	quest_label.add_theme_color_override("font_color", Color("#ffe4a4"))
+	quest_panel.add_child(quest_label)
 
 	direction_controls = HBoxContainer.new()
 	direction_controls.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -667,6 +743,10 @@ func _layout_ui() -> void:
 	dialogue_panel.size = Vector2(w - margin * 2.0, dialogue_h)
 	action_scroll.position = Vector2(margin, dialogue_panel.position.y + dialogue_h + 5)
 	action_scroll.size = Vector2(w - margin * 2.0, actions_h)
+	quest_panel.position = action_scroll.position
+	quest_panel.size = action_scroll.size
+	quest_label.position = Vector2(12, 9)
+	quest_label.size = quest_panel.size - Vector2(24, 16)
 	var control_y: float = action_scroll.position.y + actions_h + 5
 	var available: float = maxf(170.0, h - control_y - 9)
 	var pad_h: float = clampf((available - 10) / 3.0, 59, 81)
@@ -833,6 +913,8 @@ func _refresh() -> void:
 		if not direction_controls.visible:
 			_end_hold()
 		_show_nearby_actions()
+		quest_label.text = "次の目標\n" + _quest_hint()
+		quest_panel.visible = not pending_choices
 
 func _camera_grid_position(point: Vector2i) -> Vector2:
 	var rows: Array = _current_rows()
@@ -917,6 +999,8 @@ func _draw_map() -> void:
 				cell.add_child(placeholder)
 			map_grid.add_child(cell)
 			var sprite_id: String = "house" if symbol == "H" else str(point_art.get(Vector2i(x, y), ""))
+			if location_id == "field" and (symbol == "H" or Vector2i(x, y) in [Vector2i(8, 8), Vector2i(10, 13)]):
+				sprite_id = ""
 			var marker: Dictionary = point_markers.get(Vector2i(x, y), {})
 			if not marker.is_empty():
 				var sign_label := Label.new()
@@ -953,6 +1037,8 @@ func _draw_map() -> void:
 			cell.add_child(sprite)
 	rendered_tile_count = map_grid.get_child_count()
 	map_grid.position = _camera_grid_position(tile_pos)
+	props_overlay.position = map_grid.position
+	_decorate_village(rows)
 	if not walking:
 		call_deferred("_sync_hero_overlay")
 
@@ -985,6 +1071,8 @@ func _show_nearby_actions() -> void:
 		action_list.remove_child(node)
 		node.queue_free()
 	action_scroll.visible = pending_choices and not battle_active
+	if quest_panel != null:
+		quest_panel.visible = not action_scroll.visible and not battle_active
 	if not pending_choices:
 		return
 	var point: Dictionary = _nearby_point()
@@ -1039,6 +1127,7 @@ func _walk(dx: int, dy: int) -> void:
 	var tween := create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(map_grid, "position", next_camera_pos, WALK_DURATION).set_trans(Tween.TRANS_LINEAR)
+	tween.tween_property(props_overlay, "position", next_camera_pos, WALK_DURATION).set_trans(Tween.TRANS_LINEAR)
 	tween.tween_property(hero_overlay, "position", finish, WALK_DURATION).set_trans(Tween.TRANS_LINEAR)
 	tween.set_parallel(false)
 	tween.tween_callback(func():
@@ -1175,6 +1264,7 @@ func _refresh_battle() -> void:
 	combat_controls.visible = true
 	map_frame.visible = false
 	action_scroll.visible = false
+	quest_panel.visible = false
 	direction_controls.visible = false
 	management_panel.visible = false
 	menu_button.text = "メニュー"
