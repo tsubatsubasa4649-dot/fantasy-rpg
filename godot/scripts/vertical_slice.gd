@@ -3,9 +3,8 @@ extends Control
 const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const SpriteAnimation = preload("res://scripts/sprite_animation.gd")
-const CoastTransition = preload("res://shaders/coast_transition.gdshader")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG AUTOTILE-19 / COHERENT WORLD"
+const BUILD_ID := "RPG RENDER-20 / ASSET ONLY"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -40,8 +39,9 @@ var management_panel: HBoxContainer
 var combat_controls: HBoxContainer
 var screen_mode: String = "explore"
 var cell_size: int = 44
-const CAMERA_COLS: int = 10
-const CAMERA_ROWS: int = 7
+const SOURCE_TILE_SIZE: int = 16
+const CAMERA_COLS: int = 15
+const CAMERA_ROWS: int = 11
 var button_size: Vector2 = Vector2(94, 74)
 var last_point_id: String = ""
 var last_phase: int = 0
@@ -206,46 +206,41 @@ func _load_art() -> void:
 	_load_world_tiles()
 
 func _load_world_tiles() -> void:
-	# AI-generated source painting cropped into 4-by-2 animated-free art regions.
-	# The strip uses mirrored edges for periodic 4-by-4 tile patterns; choosing
-	# the cell by absolute world coordinate preserves clean joins while panning.
+	# Read one 16x16 pixel sample of each terrain from the artist-supplied
+	# asset atlas. No mirrored copying, rotation or image generation.
 	var path: String = "res://assets/world_atlas_v2.b64"
 	if not FileAccess.file_exists(path):
-		push_warning("Second-generation world tile atlas missing")
 		return
 	var image := Image.new()
 	var bytes: PackedByteArray = Marshalls.base64_to_raw(FileAccess.get_file_as_string(path).strip_edges())
 	if image.load_png_from_buffer(bytes) != OK or image.get_width() != 64 or image.get_height() != 160:
-		push_warning("Second-generation world tile atlas has invalid 64x160 dimensions")
+		push_warning("World atlas unavailable; solid terrain colors will be used")
 		return
 	var atlas: Texture2D = ImageTexture.create_from_image(image)
 	var ids: Array[String] = ["world_sea", "world_grass", "world_forest", "world_mountain", "world_road"]
-	for kind in range(ids.size()):
-		var tiles: Array = []
-		for row in range(2):
-			var art_row: Array = []
-			for col in range(4):
-				var tile := AtlasTexture.new()
-				tile.atlas = atlas
-				tile.region = Rect2(col * 16, kind * 32 + row * 16, 16, 16)
-				art_row.append(tile)
-			tiles.append(art_row)
-		textures[ids[kind] + "_variants"] = tiles
-		textures[ids[kind]] = tiles[0][0]
+	for index in range(ids.size()):
+		var tile := AtlasTexture.new()
+		tile.atlas = atlas
+		tile.region = Rect2(0, index * 32, SOURCE_TILE_SIZE, SOURCE_TILE_SIZE)
+		tile.filter_clip = true
+		textures[ids[index]] = tile
 
-func _world_tile(symbol: String, world_x: int, world_y: int) -> Texture2D:
+func _world_tile(symbol: String, _world_x: int, _world_y: int) -> Texture2D:
 	var world_art: Dictionary = {"~": "world_sea", ".": "world_grass", "f": "world_forest", "#": "world_mountain", "p": "world_road"}
-	var art_id: String = str(world_art.get(symbol, "world_grass"))
-	var variants: Array = textures.get(art_id + "_variants", [])
-	if variants.size() != 2:
-		return textures.get(art_id, textures.get("ground"))
-	var row: int = posmod(world_y, 4)
-	if row >= 2:
-		row = 3 - row
-	return variants[row][posmod(world_x, 4)]
+	return textures.get(str(world_art.get(symbol, "world_grass")), null)
 
-func _world_tile_flip_v(world_y: int) -> bool:
-	return posmod(world_y, 4) >= 2
+func _terrain_color(symbol: String) -> Color:
+	match symbol:
+		"~": return Color("#24588c")
+		"#": return Color("#777b80")
+		"f": return Color("#387347")
+		"p": return Color("#aa8a5b")
+		"H": return Color("#97794e")
+		_: return Color("#609a4b")
+
+func _field_actor_rect() -> Rect2:
+	return Rect2(Vector2.ZERO, Vector2(cell_size, cell_size))
+
 
 func _character_profile(character_id: String) -> Dictionary:
 	return game.registry.by_id("characters", character_id)
@@ -428,7 +423,7 @@ func _build_ui() -> void:
 	hud_panel.add_child(hud_title)
 
 	build_label = Label.new()
-	build_label.text = "TILES-19"
+	build_label.text = "RENDER-20"
 	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	build_label.add_theme_font_size_override("font_size", 11)
 	build_label.add_theme_color_override("font_color", Color("#9fb5d8"))
@@ -450,13 +445,10 @@ func _build_ui() -> void:
 	map_frame = Panel.new()
 	map_frame.add_theme_stylebox_override("panel", _panel_style(Color("#101f30"), Color("#9caec3")))
 	map_frame.clip_contents = true
+	map_frame.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	root_column.add_child(map_frame)
 	map_center = Control.new()
-	map_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	map_center.offset_left = 7
-	map_center.offset_top = 7
-	map_center.offset_right = -7
-	map_center.offset_bottom = -7
+	map_center.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	map_center.clip_contents = true
 	map_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	map_frame.add_child(map_center)
@@ -466,14 +458,14 @@ func _build_ui() -> void:
 	root_column.add_child(battle_backdrop)
 	battle_backdrop.visible = false
 	map_grid = GridContainer.new()
-	map_grid.columns = 10
+	map_grid.columns = CAMERA_COLS
 	map_grid.add_theme_constant_override("h_separation", 0)
 	map_grid.add_theme_constant_override("v_separation", 0)
 	map_grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	map_center.add_child(map_grid)
 	hero_overlay = TextureRect.new()
 	hero_overlay.custom_minimum_size = Vector2.ZERO
-	hero_overlay.size = SpriteAnimation.field_rect(float(cell_size), _character_profile("hero")).size
+	hero_overlay.size = _field_actor_rect().size
 	hero_overlay.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	hero_overlay.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	hero_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -620,9 +612,19 @@ func _layout_ui() -> void:
 	battle_backdrop.size = map_frame.size
 	battle_panel.position = map_frame.position + Vector2(14, 20)
 	battle_panel.size = map_frame.size - Vector2(28, 40)
-	cell_size = mini(46, mini(int((map_frame.size.x - 22.0) / 10.0), int((map_frame.size.y - 20.0) / 7.0)))
+	# Source pixels are always 16x16 and only enlarged by whole-number factors.
+	var integer_scale: int = maxi(1, mini(
+		int(floorf((map_frame.size.x - 14.0) / float(CAMERA_COLS * SOURCE_TILE_SIZE))),
+		int(floorf((map_frame.size.y - 14.0) / float(CAMERA_ROWS * SOURCE_TILE_SIZE)))
+	))
+	cell_size = SOURCE_TILE_SIZE * integer_scale
+	map_center.position = Vector2(
+		roundf((map_frame.size.x - CAMERA_COLS * cell_size) * 0.5),
+		roundf((map_frame.size.y - CAMERA_ROWS * cell_size) * 0.5)
+	)
+	map_center.size = Vector2(CAMERA_COLS * cell_size, CAMERA_ROWS * cell_size)
 	if hero_overlay != null:
-		hero_overlay.size = SpriteAnimation.field_rect(float(cell_size), _character_profile("hero")).size
+		hero_overlay.size = _field_actor_rect().size
 	description_label.position = Vector2(margin + 3, map_frame.position.y + map_h + 3)
 	description_label.size = Vector2(w - margin * 2.0, 21)
 	dialogue_panel.position = Vector2(margin, description_label.position.y + 22)
@@ -798,7 +800,7 @@ func _hero_cell_position(point: Vector2i) -> Vector2:
 func _sync_hero_overlay() -> void:
 	if hero_overlay == null or map_grid.get_child_count() == 0 or walking:
 		return
-	var actor_rect: Rect2 = SpriteAnimation.field_rect(float(cell_size), _character_profile("hero"))
+	var actor_rect: Rect2 = _field_actor_rect()
 	hero_overlay.size = actor_rect.size
 	hero_overlay.position = _hero_cell_position(tile_pos) + actor_rect.position
 	walk_sprite_direction = _face_row(facing)
@@ -841,35 +843,14 @@ func _draw_map() -> void:
 			cell.stretch_mode = TextureRect.STRETCH_SCALE
 			var symbol: String = str(rows[y]).substr(x, 1)
 			var art_id: String = "wall" if symbol == "#" else "ground"
-			if is_world:
-				cell.texture = _world_tile(symbol, x, y)
-				cell.flip_v = _world_tile_flip_v(y)
-				if symbol != "~":
-					var coast_edges := Vector4.ZERO
-					if y > 0 and str(rows[y - 1]).substr(x, 1) == "~":
-						coast_edges.x = 1.0
-					if x + 1 < row_width and str(rows[y]).substr(x + 1, 1) == "~":
-						coast_edges.y = 1.0
-					if y + 1 < rows.size() and str(rows[y + 1]).substr(x, 1) == "~":
-						coast_edges.z = 1.0
-					if x > 0 and str(rows[y]).substr(x - 1, 1) == "~":
-						coast_edges.w = 1.0
-					if coast_edges != Vector4.ZERO:
-						var coast_material := ShaderMaterial.new()
-						coast_material.shader = CoastTransition
-						coast_material.set_shader_parameter("sea_edges", coast_edges)
-						coast_material.set_shader_parameter("sand_art", _world_tile("p", x, y))
-						cell.material = coast_material
-			elif textures.has(art_id):
-				cell.texture = textures[art_id]
-			elif textures.has("ground"):
-				cell.texture = textures["ground"]
-			# Village terrain retains the former region accents.
-			if not is_world:
-				if symbol == "p":
-					cell.modulate = Color("#caa06c")
-				elif symbol == "s":
-					cell.modulate = Color("#b7a47a")
+			var tile_art: Texture2D = _world_tile(symbol, x, y) if is_world else textures.get(art_id, null)
+			cell.texture = tile_art
+			if tile_art == null:
+				var placeholder := ColorRect.new()
+				placeholder.color = _terrain_color(symbol)
+				placeholder.size = Vector2(cell_size, cell_size)
+				placeholder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				cell.add_child(placeholder)
 			map_grid.add_child(cell)
 			var sprite_id: String = "house" if symbol == "H" else str(point_art.get(Vector2i(x, y), ""))
 			var marker: Dictionary = point_markers.get(Vector2i(x, y), {})
@@ -893,11 +874,11 @@ func _draw_map() -> void:
 			sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			if textures.has(sprite_id):
 				sprite.texture = textures[sprite_id]
+			# Field characters are exactly one tile, independent of battle scale.
+			sprite.position = Vector2.ZERO
+			sprite.size = _field_actor_rect().size
 			var sprite_profile: Dictionary = _profile_from_field_sprite(sprite_id)
 			if not sprite_profile.is_empty():
-				var actor_rect: Rect2 = SpriteAnimation.field_rect(float(cell_size), sprite_profile)
-				sprite.position = actor_rect.position
-				sprite.size = actor_rect.size
 				var idle: Texture2D = SpriteAnimation.frame(
 					character_walk_frames.get(str(sprite_profile.get("id", "")), []),
 					sprite_profile.get("walk_animation", {}), Vector2i.DOWN,
@@ -905,8 +886,6 @@ func _draw_map() -> void:
 				)
 				if idle != null:
 					sprite.texture = idle
-			else:
-				sprite.size = Vector2(cell_size, cell_size)
 			cell.add_child(sprite)
 	rendered_tile_count = map_grid.get_child_count()
 	map_grid.position = _camera_grid_position(tile_pos)
@@ -985,7 +964,7 @@ func _walk(dx: int, dy: int) -> void:
 		walking = false
 		_refresh()
 		return
-	var target_rect: Rect2 = SpriteAnimation.field_rect(float(cell_size), _character_profile("hero"))
+	var target_rect: Rect2 = _field_actor_rect()
 	var next_camera_pos: Vector2 = _camera_grid_position(goal)
 	var old_camera_pos: Vector2 = map_grid.position
 	var finish: Vector2 = map_center.position + next_camera_pos + Vector2(goal.x, goal.y) * float(cell_size) + target_rect.position
