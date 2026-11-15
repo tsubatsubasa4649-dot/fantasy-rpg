@@ -53,6 +53,19 @@ func _run() -> void:
 	check(ui._current_rows().size() == 24, "World map data exceeds viewport height")
 	check(ui.map_grid.get_child_count() == 960, "World tiles stay cached for pixel-smooth scrolling")
 	var world_rows: Array = ui._current_rows()
+	# CAMERA-22 regression: world dimensions and camera clamp at all four edges.
+	check(world_rows.size() == 24, "CAMERA-22 overworld is exactly 24 rows tall")
+	var all_rows_40: bool = true
+	for world_row in world_rows:
+		if str(world_row).length() != 40:
+			all_rows_40 = false
+	check(all_rows_40, "CAMERA-22 overworld is exactly 40 columns wide")
+	var top_left_camera: Vector2 = ui._camera_grid_position(Vector2i(0, 0))
+	var bottom_right_camera: Vector2 = ui._camera_grid_position(Vector2i(39, 23))
+	check(top_left_camera.is_equal_approx(Vector2.ZERO), "CAMERA-22 camera clamps to upper-left world boundary")
+	check(bottom_right_camera.is_equal_approx(Vector2(-32 * ui.cell_size, -18 * ui.cell_size)), "CAMERA-22 camera clamps to lower-right world boundary")
+	check(ui._camera_grid_position(Vector2i(1, 1)).is_equal_approx(top_left_camera), "CAMERA-22 camera does not reveal empty space near upper-left edge")
+	check(ui._camera_grid_position(Vector2i(38, 22)).is_equal_approx(bottom_right_camera), "CAMERA-22 camera does not reveal empty space near lower-right edge")
 	var expected_world_art: Dictionary = {"~": "world_sea", ".": "world_grass", "f": "world_forest", "#": "world_mountain", "p": "world_road"}
 	for symbol in expected_world_art:
 		var found: bool = false
