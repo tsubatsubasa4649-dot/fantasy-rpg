@@ -472,7 +472,7 @@ func _build_ui() -> void:
 	hero_overlay.texture = textures.get("hero_field", textures.get("hero"))
 	walk_sprite_direction = _face_row(facing)
 	_set_hero_walk_frame(1)
-	map_frame.add_child(hero_overlay)
+	map_center.add_child(hero_overlay)
 
 	battle_panel = VBoxContainer.new()
 	battle_panel.add_theme_constant_override("separation", 22)
@@ -781,8 +781,8 @@ func _camera_grid_position(point: Vector2i) -> Vector2:
 	var x_offset: float = clampf(float(point.x) - (float(CAMERA_COLS) - 1.0) / 2.0, 0.0, maxf(0.0, float(width - CAMERA_COLS)))
 	var y_offset: float = clampf(float(point.y) - (float(CAMERA_ROWS) - 1.0) / 2.0, 0.0, maxf(0.0, float(height - CAMERA_ROWS)))
 	var base: Vector2 = Vector2(
-		(map_center.size.x - CAMERA_COLS * float(cell_size)) * 0.5,
-		(map_center.size.y - CAMERA_ROWS * float(cell_size)) * 0.5
+		(map_center.size.x - mini(width, CAMERA_COLS) * float(cell_size)) * 0.5,
+		(map_center.size.y - mini(height, CAMERA_ROWS) * float(cell_size)) * 0.5
 	)
 	return base - Vector2(x_offset, y_offset) * float(cell_size)
 
@@ -795,7 +795,7 @@ func _camera_origin() -> Vector2i:
 	return Vector2i(roundi((base.x - screen.x) / float(cell_size)), roundi((base.y - screen.y) / float(cell_size)))
 
 func _hero_cell_position(point: Vector2i) -> Vector2:
-	return map_center.position + map_grid.position + Vector2(point.x, point.y) * float(cell_size)
+	return map_grid.position + Vector2(point.x, point.y) * float(cell_size)
 
 func _sync_hero_overlay() -> void:
 	if hero_overlay == null or map_grid.get_child_count() == 0 or walking:
@@ -967,7 +967,7 @@ func _walk(dx: int, dy: int) -> void:
 	var target_rect: Rect2 = _field_actor_rect()
 	var next_camera_pos: Vector2 = _camera_grid_position(goal)
 	var old_camera_pos: Vector2 = map_grid.position
-	var finish: Vector2 = map_center.position + next_camera_pos + Vector2(goal.x, goal.y) * float(cell_size) + target_rect.position
+	var finish: Vector2 = next_camera_pos + Vector2(goal.x, goal.y) * float(cell_size) + target_rect.position
 	var tween := create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(map_grid, "position", next_camera_pos, WALK_DURATION).set_trans(Tween.TRANS_LINEAR)
