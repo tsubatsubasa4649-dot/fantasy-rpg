@@ -20,7 +20,8 @@ func _run() -> void:
 		quit(1)
 		return
 	var village: Dictionary = game.registry.by_id("maps", "field")
-	check(village.get("spawn", []) == [10, 10], "Village starts in central plaza")
+	var village_start: Array = village.get("spawn", [])
+	check(village_start.size() == 2 and int(village_start[0]) == 10 and int(village_start[1]) == 10, "Village starts in central plaza")
 	check(village.get("points", []).size() >= 16, "Village has NPCs and discovery points")
 	for phase in ["1", "2", "3"]:
 		var rows: Array = village.get("rows", []) if phase == "1" else village.get("phase_rows", {}).get(phase, [])
@@ -66,7 +67,8 @@ func _run() -> void:
 		if point.get("id") == "home_village":
 			for action in point.get("actions", []):
 				if action.get("travel_to") == "field":
-					check(action.get("spawn", []) == [10, 10], "World-to-village entrance uses updated spawn")
+					var arrive: Array = action.get("spawn", [])
+					check(arrive.size() == 2 and int(arrive[0]) == 10 and int(arrive[1]) == 10, "World-to-village entrance uses updated spawn")
 	check(game.run_event("read_village_sign"), "Village information board can be read")
 	check(game.run_event("discover_well_emblem"), "Village well discovery can be completed")
 	check(game.run_event("help_herbalist"), "Herbalist quest can be completed")
