@@ -74,6 +74,14 @@ jobs:
           test -s godot-play/fantasy-village24.wasm
           grep -q "fantasy-village24" godot-play/index.html
 
+      - name: Capture real Godot village screenshot
+        run: |
+          xvfb-run -a timeout 60s godot --path godot --script res://tests/capture_village.gd
+          test -s godot/village-screen.png
+          cp godot/village-screen.png godot-play/village-screen.png
+          base64 -w0 godot/village-screen.png > godot-play/village-screen.b64
+          test -s godot-play/village-screen.b64
+
       - name: Commit browser build without touching original HTML game
         run: |
           git config user.name "github-actions[bot]"
