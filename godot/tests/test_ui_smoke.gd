@@ -86,7 +86,6 @@ func _run() -> void:
 	ui._walk(1, 0)
 	await create_timer(0.14).timeout
 	var pan_distance: float = ui.map_grid.position.distance_to(grid_before)
-	print("DEBUG CAMERA PAN start=", grid_before, " target=", grid_target, " current=", ui.map_grid.position, " walking=", ui.walking)
 	check(pan_distance > 0.1 and pan_distance < grid_before.distance_to(grid_target) - 0.1, "Camera moves smoothly through intermediate pixel offsets")
 	await create_timer(0.25).timeout
 	check(ui.map_grid.get_child(123) == world_cached_tile, "Camera pan retains generated tile nodes")
@@ -102,6 +101,15 @@ func _run() -> void:
 
 	check(ui.description_label.text.contains("ウィンドル"), "New Windle village visible on startup")
 	check(ui.tile_pos == Vector2i(4, 5), "Hero spawns at village entry rather than map edge")
+	var npc_cell: TextureRect = ui.map_grid.get_child(4 * 10 + 2)
+	var npc_field: TextureRect = null
+	for candidate in npc_cell.get_children():
+		if candidate is TextureRect:
+			npc_field = candidate
+			break
+	check(npc_field != null, "Village NPC uses existing sprite asset")
+	if npc_field != null:
+		check(npc_field.size == ui.hero_overlay.size, "NPC and player are identically one tile in exploration")
 	var village: Dictionary = ui.game.registry.by_id("maps", "field")
 	check(village.get("points", []).size() >= 9, "Village includes NPCs and hidden-discovery points")
 	check(str(village.get("rows", [])[3]).contains("p"), "Village road exists in map data")
