@@ -4,7 +4,7 @@ const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const SpriteAnimation = preload("res://scripts/sprite_animation.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG VILLAGE-28 / CAMERA-22"
+const BUILD_ID := "RPG VILLAGE-29 / CAMERA-22"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -207,9 +207,27 @@ func _load_art() -> void:
 		textures[id] = ImageTexture.create_from_image(image)
 	_load_party_atlas()
 	_load_walk_frames()
+	_load_npc_idles()
 	_load_world_tiles()
 	_load_village_tiles()
 	_load_village_props()
+
+func _load_npc_idles() -> void:
+	# Hand-created character artwork at full presentation resolution.
+	# The low-resolution 12-frame walk sheet remains available separately.
+	var path: String = "res://assets/npc_idle_atlas.b64"
+	if not FileAccess.file_exists(path):
+		push_warning("NPC presentation atlas missing")
+		return
+	var image := Image.new()
+	var bytes: PackedByteArray = Marshalls.base64_to_raw(FileAccess.get_file_as_string(path).strip_edges())
+	if image.load_png_from_buffer(bytes) != OK or image.get_width() != 200 or image.get_height() != 48:
+		push_warning("NPC presentation atlas failed decoding")
+		return
+	var ids: Array[String] = ["ricky_field", "meri_field", "goro_field", "elder_field", "sena_field"]
+	for index in range(ids.size()):
+		var idle: Image = image.get_region(Rect2i(index * 40, 0, 40, 48))
+		textures[ids[index]] = ImageTexture.create_from_image(_trim_transparent_padding(idle))
 
 func _load_village_tiles() -> void:
 	# This is a human-approved external pixel-art sheet, resized for 16px tiles,
@@ -567,7 +585,7 @@ func _build_ui() -> void:
 	hud_panel.add_child(hud_title)
 
 	build_label = Label.new()
-	build_label.text = "VILLAGE-28"
+	build_label.text = "VILLAGE-29"
 	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	build_label.add_theme_font_size_override("font_size", 11)
 	build_label.add_theme_color_override("font_color", Color("#9fb5d8"))

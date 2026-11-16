@@ -155,7 +155,7 @@ func _run() -> void:
 	for portrait_id in ["ricky_field", "meri_field", "goro_field", "elder_field", "sena_field"]:
 		check(ui.textures.has(portrait_id) and ui.textures[portrait_id] is Texture2D, "NPC has unique sprite-sheet-derived field art: " + portrait_id)
 		if ui.textures.has(portrait_id):
-			check(ui.textures[portrait_id].get_width() <= 16 and ui.textures[portrait_id].get_height() <= 22, "NPC visual trims unused sheet padding: " + portrait_id)
+			check(ui.textures[portrait_id].get_width() <= 40 and ui.textures[portrait_id].get_height() <= 48, "NPC visual fits one tile: " + portrait_id)
 	for actor in ["ch_ricky", "ch_meri", "ch_goro", "elder_field", "sena_field"]:
 		var frames: Array = ui.character_walk_frames.get(actor, [])
 		check(frames.size() == 4, "NPC has all four directions: " + actor)
@@ -166,6 +166,9 @@ func _run() -> void:
 					all_three = false
 			check(all_three, "NPC has three actual walking frames per direction: " + actor)
 	check(ui.textures["ricky_field"] != ui.textures["meri_field"] and ui.textures["meri_field"] != ui.textures["goro_field"], "Recruited companions never share exploration textures")
+	for presentation_id in ["ricky_field", "meri_field", "goro_field", "elder_field", "sena_field"]:
+		var presentation: Texture2D = ui.textures.get(presentation_id, null)
+		check(presentation != null and presentation.get_width() >= 24 and presentation.get_height() >= 30, "Village character uses detailed, tightly cropped original portrait: " + presentation_id)
 	check(ui.textures["elder_field"] != ui.textures["sena_field"], "Elder and herbalist do not reuse NPC art")
 	for actor_id in ["ch_ricky", "ch_meri", "ch_goro"]:
 		var profile: Dictionary = ui.game.registry.by_id("characters", actor_id)
