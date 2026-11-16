@@ -4,7 +4,7 @@ const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const SpriteAnimation = preload("res://scripts/sprite_animation.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG VILLAGE-27 / CAMERA-22"
+const BUILD_ID := "RPG VILLAGE-28 / CAMERA-22"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -351,6 +351,17 @@ func _profile_from_field_sprite(sprite_id: String) -> Dictionary:
 			return profile
 	return {}
 
+func _display_npc_frame(frames: Array, spec: Dictionary) -> Texture2D:
+	var idle: Texture2D = SpriteAnimation.frame(frames, spec, Vector2i.DOWN, int(spec.get("idle_frame", 1)))
+	if idle == null:
+		return null
+	var source_image: Image = idle.get_image()
+	if source_image == null or source_image.is_empty():
+		return idle
+	# Display the real source art without the transparent sheet padding.
+	# The 12 original directional frames stay intact for later movement.
+	return ImageTexture.create_from_image(_trim_transparent_padding(source_image))
+
 func _load_walk_frames() -> void:
 	# All three companions have individual four-direction art in the shared
 	# source atlas. Battle sprites remain unchanged.
@@ -362,7 +373,7 @@ func _load_walk_frames() -> void:
 		if character_id != "hero" and frames.size() == 4:
 			var field_id: String = str(profile.get("field_sprite_id", ""))
 			if not field_id.is_empty():
-				textures[field_id] = SpriteAnimation.frame(frames, profile.get("walk_animation", {}), Vector2i.DOWN, 1)
+				textures[field_id] = _display_npc_frame(frames, profile.get("walk_animation", {}))
 	# Non-recruitable village actors use the same 12-frame source geometry.
 	for entry in [["elder_field", 3], ["sena_field", 4]]:
 		var field_id: String = str(entry[0])
@@ -375,7 +386,7 @@ func _load_walk_frames() -> void:
 		var frames: Array = SpriteAnimation.decode_frames({"walk_animation": spec})
 		character_walk_frames[field_id] = frames
 		if frames.size() == 4:
-			textures[field_id] = SpriteAnimation.frame(frames, spec, Vector2i.DOWN, 1)
+			textures[field_id] = _display_npc_frame(frames, spec)
 	walk_textures = character_walk_frames.get("hero", [])
 	display_walk_frames.clear()
 	# Keep source frame atlas data intact for combat/tests; crop only transparent
@@ -556,7 +567,7 @@ func _build_ui() -> void:
 	hud_panel.add_child(hud_title)
 
 	build_label = Label.new()
-	build_label.text = "VILLAGE-27"
+	build_label.text = "VILLAGE-28"
 	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	build_label.add_theme_font_size_override("font_size", 11)
 	build_label.add_theme_color_override("font_color", Color("#9fb5d8"))
@@ -1067,7 +1078,7 @@ func _draw_map() -> void:
 					int(sprite_profile.get("walk_animation", {}).get("idle_frame", 1))
 				)
 				if idle != null:
-					sprite.texture = idle
+					sprite.texture = textures.get(sprite_id, idle)
 			cell.add_child(sprite)
 	rendered_tile_count = map_grid.get_child_count()
 	map_grid.position = _camera_grid_position(tile_pos)

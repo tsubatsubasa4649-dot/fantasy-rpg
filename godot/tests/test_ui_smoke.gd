@@ -153,7 +153,9 @@ func _run() -> void:
 		check(ui.display_walk_frames[0][1].get_width() < 48, "On-screen hero uses tightly cropped walk sprite")
 	check(ui.character_walk_frames.size() == 6, "Walking loader handles hero, three companions, elder and herbalist")
 	for portrait_id in ["ricky_field", "meri_field", "goro_field", "elder_field", "sena_field"]:
-		check(ui.textures.has(portrait_id) and ui.textures[portrait_id] is AtlasTexture, "NPC has unique sprite-sheet-derived field art: " + portrait_id)
+		check(ui.textures.has(portrait_id) and ui.textures[portrait_id] is Texture2D, "NPC has unique sprite-sheet-derived field art: " + portrait_id)
+		if ui.textures.has(portrait_id):
+			check(ui.textures[portrait_id].get_width() <= 16 and ui.textures[portrait_id].get_height() <= 22, "NPC visual trims unused sheet padding: " + portrait_id)
 	for actor in ["ch_ricky", "ch_meri", "ch_goro", "elder_field", "sena_field"]:
 		var frames: Array = ui.character_walk_frames.get(actor, [])
 		check(frames.size() == 4, "NPC has all four directions: " + actor)
