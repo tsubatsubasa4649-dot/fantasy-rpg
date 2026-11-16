@@ -17,8 +17,17 @@ static func decode_frames(profile: Dictionary) -> Array:
 	var height: int = int(spec.get("frame_height", 56))
 	if cols < 1 or rows < 1 or width < 1 or height < 1:
 		return []
-	if image.get_width() != cols * width or image.get_height() != rows * height:
+	# An NPC atlas contains five consecutive 4-direction sheets. The hero
+	# retains the original single-character sheet contract.
+	var atlas_index: int = int(spec.get("atlas_index", 0))
+	if atlas_index < 0 or image.get_width() != cols * width:
 		return []
+	if spec.has("atlas_index"):
+		if image.get_height() % (rows * height) != 0 or atlas_index >= image.get_height() / (rows * height):
+			return []
+	elif image.get_height() != rows * height:
+		return []
+	var row_offset: int = atlas_index * rows
 	var atlas: Texture2D = ImageTexture.create_from_image(image)
 	var output: Array = []
 	for row in range(rows):
@@ -26,7 +35,7 @@ static func decode_frames(profile: Dictionary) -> Array:
 		for col in range(cols):
 			var part := AtlasTexture.new()
 			part.atlas = atlas
-			part.region = Rect2(col * width, row * height, width, height)
+			part.region = Rect2(col * width, (row_offset + row) * height, width, height)
 			frames.append(part)
 		output.append(frames)
 	return output

@@ -4,7 +4,7 @@ const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const SpriteAnimation = preload("res://scripts/sprite_animation.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG VILLAGE-26 / CAMERA-22"
+const BUILD_ID := "RPG VILLAGE-27 / CAMERA-22"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -352,13 +352,30 @@ func _profile_from_field_sprite(sprite_id: String) -> Dictionary:
 	return {}
 
 func _load_walk_frames() -> void:
-	# Every actor uses the same sheet loader; companions may use static frames
-	# until their directional PNG artwork is provided.
+	# All three companions have individual four-direction art in the shared
+	# source atlas. Battle sprites remain unchanged.
 	character_walk_frames.clear()
 	for profile in game.registry.records("characters"):
 		var character_id: String = str(profile.get("id", ""))
 		var frames: Array = SpriteAnimation.decode_frames(profile)
 		character_walk_frames[character_id] = frames
+		if character_id != "hero" and frames.size() == 4:
+			var field_id: String = str(profile.get("field_sprite_id", ""))
+			if not field_id.is_empty():
+				textures[field_id] = SpriteAnimation.frame(frames, profile.get("walk_animation", {}), Vector2i.DOWN, 1)
+	# Non-recruitable village actors use the same 12-frame source geometry.
+	for entry in [["elder_field", 3], ["sena_field", 4]]:
+		var field_id: String = str(entry[0])
+		var spec: Dictionary = {
+			"type": "sheet", "source": "res://assets/npc_walk_atlas.b64",
+			"atlas_index": int(entry[1]), "columns": 3, "rows": 4,
+			"frame_width": 16, "frame_height": 22,
+			"order": ["down", "left", "right", "up"], "idle_frame": 1
+		}
+		var frames: Array = SpriteAnimation.decode_frames({"walk_animation": spec})
+		character_walk_frames[field_id] = frames
+		if frames.size() == 4:
+			textures[field_id] = SpriteAnimation.frame(frames, spec, Vector2i.DOWN, 1)
 	walk_textures = character_walk_frames.get("hero", [])
 	display_walk_frames.clear()
 	# Keep source frame atlas data intact for combat/tests; crop only transparent
@@ -539,7 +556,7 @@ func _build_ui() -> void:
 	hud_panel.add_child(hud_title)
 
 	build_label = Label.new()
-	build_label.text = "VILLAGE-26"
+	build_label.text = "VILLAGE-27"
 	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	build_label.add_theme_font_size_override("font_size", 11)
 	build_label.add_theme_color_override("font_color", Color("#9fb5d8"))

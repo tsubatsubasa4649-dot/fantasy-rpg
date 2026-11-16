@@ -67,12 +67,12 @@ jobs:
         run: |
           mkdir -p godot-play
           # Fresh asset basename invalidates Safari's cached .pck/.wasm/.js files.
-          godot --headless --verbose --path godot --export-release "Web" "$GITHUB_WORKSPACE/godot-play/fantasy-village26.html"
-          mv godot-play/fantasy-village26.html godot-play/index.html
+          godot --headless --verbose --path godot --export-release "Web" "$GITHUB_WORKSPACE/godot-play/fantasy-village27.html"
+          mv godot-play/fantasy-village27.html godot-play/index.html
           test -s godot-play/index.html
-          test -s godot-play/fantasy-village26.pck
-          test -s godot-play/fantasy-village26.wasm
-          grep -q "fantasy-village26" godot-play/index.html
+          test -s godot-play/fantasy-village27.pck
+          test -s godot-play/fantasy-village27.wasm
+          grep -q "fantasy-village27" godot-play/index.html
 
       - name: Capture real Godot village screenshot
         run: |
@@ -85,6 +85,10 @@ jobs:
           cp godot/village-plaza-screen.png godot-play/village-plaza-screen.png
           base64 -w0 godot/village-plaza-screen.png > godot-play/village-plaza-screen.b64
           test -s godot-play/village-plaza-screen.b64
+          test -s godot/village-west-screen.png
+          cp godot/village-west-screen.png godot-play/village-west-screen.png
+          base64 -w0 godot/village-west-screen.png > godot-play/village-west-screen.b64
+          test -s godot-play/village-west-screen.b64
 
       - name: Commit browser build without touching original HTML game
         run: |

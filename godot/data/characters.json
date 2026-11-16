@@ -69,12 +69,13 @@
         "battle_anchor": "feet"
       },
       "walk_animation": {
-        "type": "static",
-        "source": "",
+        "type": "sheet",
+        "source": "res://assets/npc_walk_atlas.b64",
+        "atlas_index": 0,
         "columns": 3,
         "rows": 4,
-        "frame_width": 48,
-        "frame_height": 56,
+        "frame_width": 16,
+        "frame_height": 22,
         "order": [
           "down",
           "left",
@@ -118,12 +119,13 @@
         "battle_anchor": "feet"
       },
       "walk_animation": {
-        "type": "static",
-        "source": "",
+        "type": "sheet",
+        "source": "res://assets/npc_walk_atlas.b64",
+        "atlas_index": 1,
         "columns": 3,
         "rows": 4,
-        "frame_width": 48,
-        "frame_height": 56,
+        "frame_width": 16,
+        "frame_height": 22,
         "order": [
           "down",
           "left",
@@ -167,12 +169,13 @@
         "battle_anchor": "feet"
       },
       "walk_animation": {
-        "type": "static",
-        "source": "",
+        "type": "sheet",
+        "source": "res://assets/npc_walk_atlas.b64",
+        "atlas_index": 2,
         "columns": 3,
         "rows": 4,
-        "frame_width": 48,
-        "frame_height": 56,
+        "frame_width": 16,
+        "frame_height": 22,
         "order": [
           "down",
           "left",

@@ -151,7 +151,20 @@ func _run() -> void:
 	check(ui.display_walk_frames.size() == 4, "Hero artwork crops source transparency without editing the original atlas")
 	if ui.display_walk_frames.size() == 4:
 		check(ui.display_walk_frames[0][1].get_width() < 48, "On-screen hero uses tightly cropped walk sprite")
-	check(ui.character_walk_frames.size() == 4, "Walking loader handles all four character profiles")
+	check(ui.character_walk_frames.size() == 6, "Walking loader handles hero, three companions, elder and herbalist")
+	for portrait_id in ["ricky_field", "meri_field", "goro_field", "elder_field", "sena_field"]:
+		check(ui.textures.has(portrait_id) and ui.textures[portrait_id] is AtlasTexture, "NPC has unique sprite-sheet-derived field art: " + portrait_id)
+	for actor in ["ch_ricky", "ch_meri", "ch_goro", "elder_field", "sena_field"]:
+		var frames: Array = ui.character_walk_frames.get(actor, [])
+		check(frames.size() == 4, "NPC has all four directions: " + actor)
+		if frames.size() == 4:
+			var all_three: bool = true
+			for direction_frames in frames:
+				if direction_frames.size() != 3:
+					all_three = false
+			check(all_three, "NPC has three actual walking frames per direction: " + actor)
+	check(ui.textures["ricky_field"] != ui.textures["meri_field"] and ui.textures["meri_field"] != ui.textures["goro_field"], "Recruited companions never share exploration textures")
+	check(ui.textures["elder_field"] != ui.textures["sena_field"], "Elder and herbalist do not reuse NPC art")
 	for actor_id in ["ch_ricky", "ch_meri", "ch_goro"]:
 		var profile: Dictionary = ui.game.registry.by_id("characters", actor_id)
 		check(profile.has("walk_animation"), "Companion walk spec can be extended: " + actor_id)

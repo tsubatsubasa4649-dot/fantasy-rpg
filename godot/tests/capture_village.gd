@@ -40,4 +40,18 @@ func _capture() -> void:
 		quit(1)
 		return
 	print("PLAZA SCREENSHOT SAVED")
+	# Two review captures ensure the non-recruitable elder and herbalist
+	# receive their own sprites, not the previously shared party artwork.
+	game.tile_pos = Vector2i(6, 7)
+	game._refresh()
+	game.map_grid.position = game._camera_grid_position(game.tile_pos)
+	game.props_overlay.position = game.map_grid.position
+	game._sync_hero_overlay()
+	await process_frame
+	await process_frame
+	if root.get_texture().get_image().save_png("res://village-west-screen.png") != OK:
+		push_error("SCREENSHOT: west village save failed")
+		quit(1)
+		return
+	print("WEST VILLAGE SCREENSHOT SAVED")
 	quit(0)
