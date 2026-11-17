@@ -4,9 +4,33 @@
     {
       "id": "help_village",
       "when": {
-        "flag_is": [
-          "village_helped",
-          false
+        "all": [
+          {
+            "flag_is": [
+              "patrol_started",
+              true
+            ]
+          },
+          {
+            "flag_is": [
+              "patrol_flowers_checked",
+              true
+            ]
+          },
+          {
+            "flag_is": [
+              "patrol_well_checked",
+              true
+            ]
+          },
+          {
+            "not": {
+              "flag_is": [
+                "village_helped",
+                true
+              ]
+            }
+          }
         ]
       },
       "effects": [
@@ -22,7 +46,37 @@
     {
       "id": "find_forest_clue",
       "when": {
-        "phase_is": 1
+        "all": [
+          {
+            "phase_is": 1
+          },
+          {
+            "flag_is": [
+              "forest_search_started",
+              true
+            ]
+          },
+          {
+            "flag_is": [
+              "forest_traces_found",
+              true
+            ]
+          },
+          {
+            "flag_is": [
+              "windle_well_discovered",
+              true
+            ]
+          },
+          {
+            "not": {
+              "flag_is": [
+                "forest_clue",
+                true
+              ]
+            }
+          }
+        ]
       },
       "effects": [
         {
@@ -419,6 +473,152 @@
         {
           "set_flag": [
             "inn_rumor_heard",
+            true
+          ]
+        }
+      ],
+      "time_cost": 0
+    },
+    {
+      "id": "start_village_patrol",
+      "when": {
+        "not": {
+          "flag_is": [
+            "patrol_started",
+            true
+          ]
+        }
+      },
+      "effects": [
+        {
+          "set_flag": [
+            "patrol_started",
+            true
+          ]
+        }
+      ],
+      "time_cost": 0
+    },
+    {
+      "id": "patrol_check_flowers",
+      "when": {
+        "all": [
+          {
+            "flag_is": [
+              "patrol_started",
+              true
+            ]
+          },
+          {
+            "not": {
+              "flag_is": [
+                "patrol_flowers_checked",
+                true
+              ]
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "set_flag": [
+            "patrol_flowers_checked",
+            true
+          ]
+        }
+      ],
+      "time_cost": 0
+    },
+    {
+      "id": "patrol_check_well",
+      "when": {
+        "all": [
+          {
+            "flag_is": [
+              "patrol_started",
+              true
+            ]
+          },
+          {
+            "not": {
+              "flag_is": [
+                "patrol_well_checked",
+                true
+              ]
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "set_flag": [
+            "patrol_well_checked",
+            true
+          ]
+        },
+        {
+          "set_flag": [
+            "windle_well_discovered",
+            true
+          ]
+        }
+      ],
+      "time_cost": 0
+    },
+    {
+      "id": "start_forest_search",
+      "when": {
+        "all": [
+          {
+            "phase_is": 1
+          },
+          {
+            "not": {
+              "flag_is": [
+                "forest_search_started",
+                true
+              ]
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "set_flag": [
+            "forest_search_started",
+            true
+          ]
+        }
+      ],
+      "time_cost": 0
+    },
+    {
+      "id": "find_forest_traces",
+      "when": {
+        "all": [
+          {
+            "phase_is": 1
+          },
+          {
+            "flag_is": [
+              "forest_search_started",
+              true
+            ]
+          },
+          {
+            "not": {
+              "flag_is": [
+                "forest_traces_found",
+                true
+              ]
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "set_flag": [
+            "forest_traces_found",
             true
           ]
         }

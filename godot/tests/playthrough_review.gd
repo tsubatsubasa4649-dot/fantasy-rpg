@@ -123,16 +123,32 @@ func _play() -> void:
 
 	if await _go_to("ricky"):
 		if await _talk("夜回り", "03-first-dialogue"):
-			_record(bool(actor.game.state["flags"].get("village_helped", false)), "Ricky's night patrol changes quest flag")
-		if await _talk("リッキーを誘う"):
-			_record(actor.game.active_party().has("ch_ricky"), "Ricky is recruitable from actual conversation")
+			_record(bool(actor.game.state["flags"].get("patrol_started", false)), "Ricky's patrol is accepted")
+			_record(not bool(actor.game.state["flags"].get("village_helped", false)), "Accepting a quest does not auto-complete it")
+	if await _go_to("patrol_flowerbed"):
+		if await _talk("花壇を点検", "03a-patrol-flowers"):
+			_record(bool(actor.game.state["flags"].get("patrol_flowers_checked", false)), "Player investigated the actual flowerbed")
+	if await _go_to("old_well"):
+		if await _talk("古井戸を点検", "03b-patrol-well"):
+			_record(bool(actor.game.state["flags"].get("patrol_well_checked", false)), "Player investigated the actual well")
+	if await _go_to("ricky"):
+		if await _talk("見回りを報告"):
+			_record(bool(actor.game.state["flags"].get("village_helped", false)), "Report patrol after both visited checkpoints")
+		if await _talk("リッキーを仲間"):
+			_record(actor.game.active_party().has("ch_ricky"), "Ricky joins after completed physical patrol")
 		await _snap("04-ricky-recruited")
 
 	if await _go_to("meri"):
-		if await _talk("森の手がかり"):
-			_record(bool(actor.game.state["flags"].get("forest_clue", false)), "Meri's quest changes state")
-		if await _talk("メリルを誘う"):
-			_record(actor.game.active_party().has("ch_meri"), "Meri joins party from actual conversation")
+		if await _talk("森の手がかり探しを引き受ける"):
+			_record(bool(actor.game.state["flags"].get("forest_search_started", false)), "Meri's investigation is accepted")
+	if await _go_to("old_shrine"):
+		if await _talk("森の痕跡を調べる", "05a-forest-traces"):
+			_record(bool(actor.game.state["flags"].get("forest_traces_found", false)), "Player discovered the old shrine clue")
+	if await _go_to("meri"):
+		if await _talk("調査結果をメリルに報告"):
+			_record(bool(actor.game.state["flags"].get("forest_clue", false)), "Meri receives investigated forest evidence")
+		if await _talk("メリルを仲間"):
+			_record(actor.game.active_party().has("ch_meri"), "Meri joins party after physical investigation")
 		await _snap("05-two-companions")
 
 	actor._toggle_menu()

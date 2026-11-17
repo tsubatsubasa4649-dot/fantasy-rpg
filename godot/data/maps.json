@@ -54,12 +54,66 @@
           },
           "actions": [
             {
-              "label": "夜回りを手伝う",
-              "event": "help_village"
+              "label": "夜回りの依頼を受ける",
+              "event": "start_village_patrol",
+              "when": {
+                "not": {
+                  "flag_is": [
+                    "patrol_started",
+                    true
+                  ]
+                }
+              },
+              "success_message": "リッキーから夜回りを頼まれた。西の花壇と広場の古井戸を調べ、ここに戻ろう。"
             },
             {
-              "label": "リッキーを誘う",
-              "event": "recruit_ricky"
+              "label": "見回りを報告する",
+              "event": "help_village",
+              "when": {
+                "all": [
+                  {
+                    "flag_is": [
+                      "patrol_flowers_checked",
+                      true
+                    ]
+                  },
+                  {
+                    "flag_is": [
+                      "patrol_well_checked",
+                      true
+                    ]
+                  },
+                  {
+                    "not": {
+                      "flag_is": [
+                        "village_helped",
+                        true
+                      ]
+                    }
+                  }
+                ]
+              },
+              "success_message": "見回り完了！ 花壇も井戸も異常なし。リッキーは礼を言い、共に旅する決意を固めた。"
+            },
+            {
+              "label": "リッキーを仲間に誘う",
+              "event": "recruit_ricky",
+              "when": {
+                "all": [
+                  {
+                    "flag_is": [
+                      "village_helped",
+                      true
+                    ]
+                  },
+                  {
+                    "not": {
+                      "recruited": "ch_ricky"
+                    }
+                  }
+                ]
+              },
+              "success_message": "リッキーが仲間になった。剣を掲げ、旅に加わる。"
             }
           ]
         },
@@ -81,12 +135,73 @@
           },
           "actions": [
             {
-              "label": "森の手がかりを探す",
-              "event": "find_forest_clue"
+              "label": "森の手がかり探しを引き受ける",
+              "event": "start_forest_search",
+              "when": {
+                "all": [
+                  {
+                    "phase_is": 1
+                  },
+                  {
+                    "not": {
+                      "flag_is": [
+                        "forest_search_started",
+                        true
+                      ]
+                    }
+                  }
+                ]
+              },
+              "success_message": "メリルから調査を頼まれた。村の南にある祈りの石を調べ、古井戸の紋章と照らし合わせよう。"
             },
             {
-              "label": "メリルを誘う",
-              "event": "recruit_meri"
+              "label": "調査結果をメリルに報告する",
+              "event": "find_forest_clue",
+              "when": {
+                "all": [
+                  {
+                    "flag_is": [
+                      "forest_traces_found",
+                      true
+                    ]
+                  },
+                  {
+                    "flag_is": [
+                      "windle_well_discovered",
+                      true
+                    ]
+                  },
+                  {
+                    "not": {
+                      "flag_is": [
+                        "forest_clue",
+                        true
+                      ]
+                    }
+                  }
+                ]
+              },
+              "success_message": "祈りの石と古井戸の紋章が一致した。メリルは森の道が開けると気づいた。"
+            },
+            {
+              "label": "メリルを仲間に誘う",
+              "event": "recruit_meri",
+              "when": {
+                "all": [
+                  {
+                    "flag_is": [
+                      "forest_clue",
+                      true
+                    ]
+                  },
+                  {
+                    "not": {
+                      "recruited": "ch_meri"
+                    }
+                  }
+                ]
+              },
+              "success_message": "メリルが仲間になった。森の風が静かに背中を押す。"
             }
           ]
         },
@@ -257,6 +372,29 @@
             "3": "井戸は干上がっている。底から冷たい風が吹く。"
           },
           "actions": [
+            {
+              "label": "夜回り：古井戸を点検する",
+              "event": "patrol_check_well",
+              "when": {
+                "all": [
+                  {
+                    "flag_is": [
+                      "patrol_started",
+                      true
+                    ]
+                  },
+                  {
+                    "not": {
+                      "flag_is": [
+                        "patrol_well_checked",
+                        true
+                      ]
+                    }
+                  }
+                ]
+              },
+              "success_message": "井戸を点検した。水は清らかだが、底に月と二羽の鳥の紋章が見える。リッキーに報告しよう。"
+            },
             {
               "label": "井戸の底を調べる",
               "event": "discover_well_emblem",
@@ -465,6 +603,29 @@
           },
           "actions": [
             {
+              "label": "森の痕跡を調べる",
+              "event": "find_forest_traces",
+              "when": {
+                "all": [
+                  {
+                    "flag_is": [
+                      "forest_search_started",
+                      true
+                    ]
+                  },
+                  {
+                    "not": {
+                      "flag_is": [
+                        "forest_traces_found",
+                        true
+                      ]
+                    }
+                  }
+                ]
+              },
+              "success_message": "石の苔の下に月と二羽の鳥の印を見つけた。古井戸の紋章も確かめて、メリルに報告しよう。"
+            },
+            {
               "label": "祈りの石を調べる",
               "event": "inspect_shrine",
               "success_message": "村の伝承を記憶した。紋章は昔、二つの集落をつないだ証だった。"
@@ -472,6 +633,49 @@
             {
               "label": "手を合わせる",
               "message": "風がひと吹きした。遠くで鐘のような音がした。"
+            }
+          ]
+        },
+        {
+          "id": "patrol_flowerbed",
+          "at": [
+            6,
+            10
+          ],
+          "label": "西の花壇",
+          "image": "",
+          "dialogue": {
+            "1": "土の匂いがする。小さな花が道沿いに並んでいる。",
+            "2": "草花が踏み荒らされ、土にひびが入っている。",
+            "3": "花はほとんど枯れている。それでも新芽がひとつ残る。"
+          },
+          "actions": [
+            {
+              "label": "夜回り：花壇を点検する",
+              "event": "patrol_check_flowers",
+              "when": {
+                "all": [
+                  {
+                    "flag_is": [
+                      "patrol_started",
+                      true
+                    ]
+                  },
+                  {
+                    "not": {
+                      "flag_is": [
+                        "patrol_flowers_checked",
+                        true
+                      ]
+                    }
+                  }
+                ]
+              },
+              "success_message": "花壇の周囲を見回った。足跡を発見したが魔物の気配はない。古井戸も確かめよう。"
+            },
+            {
+              "label": "花壇を眺める",
+              "message": "小さな花が風に揺れている。"
             }
           ]
         }

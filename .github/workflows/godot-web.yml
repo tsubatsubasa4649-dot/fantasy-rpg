@@ -67,12 +67,12 @@ jobs:
         run: |
           mkdir -p godot-play
           # Fresh asset basename invalidates Safari's cached .pck/.wasm/.js files.
-          godot --headless --verbose --path godot --export-release "Web" "$GITHUB_WORKSPACE/godot-play/fantasy-menu30.html"
-          mv godot-play/fantasy-menu30.html godot-play/index.html
+          godot --headless --verbose --path godot --export-release "Web" "$GITHUB_WORKSPACE/godot-play/fantasy-quest32.html"
+          mv godot-play/fantasy-quest32.html godot-play/index.html
           test -s godot-play/index.html
-          test -s godot-play/fantasy-menu30.pck
-          test -s godot-play/fantasy-menu30.wasm
-          grep -q "fantasy-menu30" godot-play/index.html
+          test -s godot-play/fantasy-quest32.pck
+          test -s godot-play/fantasy-quest32.wasm
+          grep -q "fantasy-quest32" godot-play/index.html
 
       - name: Capture real Godot village screenshot
         run: |
@@ -101,7 +101,7 @@ jobs:
           xvfb-run -a timeout 180s godot --path godot --script res://tests/playthrough_review.gd | tee playthrough-report.log
           grep -q "PLAYTEST SUMMARY" playthrough-report.log
           mkdir -p godot-play/playtest
-          for stage in 01-first-frame 02-first-menu 03-first-dialogue 04-ricky-recruited 05-two-companions 06-formation-recruited 07-inn-dialogue 08-after-load 09-world-entry 10-cave-entry 11-slime-choice 12-battle-command 13-battle-result 14-compact-menu 15-compact-formation; do
+          for stage in 01-first-frame 02-first-menu 03-first-dialogue 03a-patrol-flowers 03b-patrol-well 04-ricky-recruited 05-two-companions 05a-forest-traces 06-formation-recruited 07-inn-dialogue 08-after-load 09-world-entry 10-cave-entry 11-slime-choice 12-battle-command 13-battle-result 14-compact-menu 15-compact-formation; do
             test -s "godot/review-${stage}.png"
             cp "godot/review-${stage}.png" "godot-play/playtest/${stage}.png"
             base64 -w0 "godot/review-${stage}.png" > "godot-play/playtest/${stage}.b64"

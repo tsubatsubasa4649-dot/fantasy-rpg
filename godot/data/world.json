@@ -43,7 +43,12 @@
     "gate_guard_heard": false,
     "shrine_inspected": false,
     "inn_supplies_taken": false,
-    "inn_rumor_heard": false
+    "inn_rumor_heard": false,
+    "patrol_started": false,
+    "patrol_flowers_checked": false,
+    "patrol_well_checked": false,
+    "forest_search_started": false,
+    "forest_traces_found": false
   },
   "deadline_ending_id": "ED_END",
   "initial_day": 0

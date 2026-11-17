@@ -264,6 +264,19 @@ func _run() -> void:
 	check(ui.audio_unlocked, "First input unlocks browser audio")
 	check(ui.battle_commands.get_child(0).custom_minimum_size.y >= 70, "Battle command buttons have large touch targets")
 	check(ui.battle_commands.get_child_count() == 4, "Battle commands include healing herb")
+	check(ui.combat_controls.columns == 2, "Combat-31 places all commands in two columns")
+	for viewport_width in [450, 360]:
+		root.size = Vector2i(viewport_width, 900 if viewport_width == 450 else 720)
+		ui._layout_ui()
+		await process_frame
+		var last_button: Button = ui.battle_commands.get_child(3)
+		var limit: Vector2 = root.size
+		check(last_button.get_global_rect().end.x <= limit.x - 6.0, "Herb command fits %dpx portrait width" % viewport_width)
+		check(last_button.get_global_rect().end.y <= limit.y - 6.0, "Herb command fits portrait height %dpx" % viewport_width)
+		check(last_button.size.y >= 60, "Combat command touch target height fits %dpx" % viewport_width)
+	root.size = Vector2i(450, 900)
+	ui._layout_ui()
+	await process_frame
 	ui._begin_battle("slime")
 	check(ui.battle_active, "Encounter enters battle scene")
 	check(ui.current_music_id == "battle", "Battle changes original BGM theme")
@@ -290,8 +303,13 @@ func _run() -> void:
 	ui._refresh()
 	check(ui.direction_controls.visible, "Controls recover after battle")
 	# Full team setup: four distinct party characters must occupy the battle grid.
+	ui.game.run_event("start_village_patrol")
+	ui.game.run_event("patrol_check_flowers")
+	ui.game.run_event("patrol_check_well")
 	ui.game.run_event("help_village")
 	ui.game.run_event("recruit_ricky")
+	ui.game.run_event("start_forest_search")
+	ui.game.run_event("find_forest_traces")
 	ui.game.run_event("find_forest_clue")
 	ui.game.run_event("recruit_meri")
 	ui.game.advance_days(20)

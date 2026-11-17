@@ -5,7 +5,7 @@ const BattleEngine = preload("res://scripts/battle_engine.gd")
 const SpriteAnimation = preload("res://scripts/sprite_animation.gd")
 const PartyMenuUI = preload("res://scripts/party_menu_ui.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG MENU-30 / CAMERA-22"
+const BUILD_ID := "RPG QUEST-32 / CAMERA-22"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -27,7 +27,7 @@ var battle_status: Label
 var battle_visual: HBoxContainer
 var battle_enemy_sprite: TextureRect
 var battle_party_visual: GridContainer
-var battle_commands: HBoxContainer
+var battle_commands: GridContainer
 var direction_controls: HBoxContainer
 var root_column: Control
 var hud_panel: Panel
@@ -41,7 +41,7 @@ var action_scroll: ScrollContainer
 var menu_button: Button
 var management_panel: HBoxContainer
 var party_menu_ui: Control
-var combat_controls: HBoxContainer
+var combat_controls: GridContainer
 var screen_mode: String = "explore"
 var cell_size: int = 44
 const SOURCE_TILE_SIZE: int = 16
@@ -604,7 +604,7 @@ func _build_ui() -> void:
 	hud_panel.add_child(hud_title)
 
 	build_label = Label.new()
-	build_label.text = "MENU-30"
+	build_label.text = "QUEST-32"
 	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	build_label.add_theme_font_size_override("font_size", 11)
 	build_label.add_theme_color_override("font_color", Color("#9fb5d8"))
@@ -745,15 +745,16 @@ func _build_ui() -> void:
 	interact_button.add_theme_font_size_override("font_size", 20)
 	_style_button(interact_button, true)
 
-	combat_controls = HBoxContainer.new()
-	combat_controls.alignment = BoxContainer.ALIGNMENT_CENTER
-	combat_controls.add_theme_constant_override("separation", 7)
+	combat_controls = GridContainer.new()
+	combat_controls.columns = 2
+	combat_controls.add_theme_constant_override("h_separation", 8)
+	combat_controls.add_theme_constant_override("v_separation", 8)
 	root_column.add_child(combat_controls)
 	battle_commands = combat_controls
 	for entry in [["攻撃", "attack"], ["技", "skill"], ["防御", "guard"], ["薬草", "herb"]]:
 		var command: String = str(entry[1])
 		var combat_button := _add_button(combat_controls, str(entry[0]), func(): _choose_battle(command))
-		combat_button.custom_minimum_size = Vector2(145, 85)
+		combat_button.custom_minimum_size = Vector2(110, 78)
 		combat_button.add_theme_font_size_override("font_size", 21)
 		_style_button(combat_button, true)
 
@@ -844,10 +845,13 @@ func _layout_ui() -> void:
 	interact.custom_minimum_size = Vector2(clampf(w * 0.22, 90, 125), pad_h * 1.7)
 	direction_controls.position = Vector2(margin, control_y)
 	direction_controls.size = Vector2(w - margin * 2.0, available)
-	combat_controls.position = Vector2(margin, control_y + 15)
-	combat_controls.size = Vector2(w - margin * 2.0, 95)
+	# Portrait controls: two columns x two rows; the fourth action stays in view.
+	var command_width: float = floorf((w - margin * 2.0 - 8.0) / 2.0)
+	var command_height: float = clampf((available - 20.0) / 2.0, 60.0, 84.0)
+	combat_controls.position = Vector2(margin, control_y + 8.0)
+	combat_controls.size = Vector2(w - margin * 2.0, command_height * 2.0 + 8.0)
 	for child in combat_controls.get_children():
-		child.custom_minimum_size = Vector2((w - 30.0 - 7.0 * float(combat_controls.get_child_count() - 1)) / float(combat_controls.get_child_count()), 84)
+		child.custom_minimum_size = Vector2(command_width, command_height)
 	management_panel.position = Vector2(margin, header_h + 13)
 	management_panel.size = Vector2(w - margin * 2.0, 74)
 	for child in management_panel.get_children():
@@ -862,12 +866,24 @@ func _quest_hint() -> String:
 	var flags: Dictionary = game.state.get("flags", {})
 	var companions: Array = game.state.get("recruited", [])
 	var phase: int = int(game.state.get("phase", 1))
+	if not bool(flags.get("patrol_started", false)) and not bool(flags.get("village_helped", false)):
+		return "目標：村の西側にいるリッキーから夜回りを引き受けよう。"
+	if not bool(flags.get("village_helped", false)) and not bool(flags.get("patrol_flowers_checked", false)):
+		return "夜回り 0/2：村の西側、薬師セナの近くの花壇(6,10)を調べよう。"
+	if not bool(flags.get("village_helped", false)) and not bool(flags.get("patrol_well_checked", false)):
+		return "夜回り 1/2：広場の西にある古井戸(8,8)を点検しよう。"
 	if not bool(flags.get("village_helped", false)):
-		return "目標：村の西側にいるリッキーに話し、夜回りを手伝おう。"
+		return "夜回り 2/2：リッキー(7,9)に報告しよう。"
 	if not companions.has("ch_ricky"):
 		return "目標：もう一度リッキーに話しかけ、仲間に誘おう。"
+	if phase == 1 and not bool(flags.get("forest_search_started", false)) and not bool(flags.get("forest_clue", false)):
+		return "目標：メリル(13,7)に森の手がかり探しを頼まれよう。"
+	if phase == 1 and not bool(flags.get("forest_clue", false)) and not bool(flags.get("forest_traces_found", false)):
+		return "森の調査 0/2：村の南の祈りの石(10,13)を調べよう。"
+	if phase == 1 and not bool(flags.get("forest_clue", false)) and not bool(flags.get("windle_well_discovered", false)):
+		return "森の調査 1/2：広場の古井戸(8,8)で紋章を確かめよう。"
 	if phase == 1 and not bool(flags.get("forest_clue", false)):
-		return "目標：村のメリルに話し、森の手がかりを聞こう。"
+		return "森の調査 2/2：メリル(13,7)に手がかりを報告しよう。"
 	if phase == 1 and not companions.has("ch_meri"):
 		return "目標：もう一度メリルに話しかけ、仲間に誘おう。"
 	if phase >= 2 and not companions.has("ch_goro"):
@@ -1179,6 +1195,11 @@ func _show_nearby_actions() -> void:
 		var entry: Dictionary = action
 		if not game.can(entry.get("when", {"always": true})):
 			continue
+		# A report option is only shown when all event prerequisites are met.
+		if entry.has("event"):
+			var record: Dictionary = game.registry.by_id("events", str(entry["event"]))
+			if not game.can(record.get("when", {"always": false})):
+				continue
 		if entry.has("event"):
 			var event_id: String = str(entry["event"])
 			if event_id in game.state.get("events_completed", []) and not event_id in ["rest_at_inn", "extended_expedition"]:
