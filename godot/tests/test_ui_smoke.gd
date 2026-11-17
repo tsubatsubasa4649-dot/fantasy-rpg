@@ -246,6 +246,9 @@ func _run() -> void:
 	check(ui.party_menu_ui.page == "home" and ui.party_menu_ui.visible, "Back returns to menu")
 	ui._toggle_menu()
 	check(not ui.party_menu_ui.visible, "Menu closes without altering party")
+	# Leave the scene in its original solo state before the older battle checks.
+	ui.game.state["recruited"] = []
+	check(ui.game.set_party([]), "Formation test restores solo party")
 	var pad: GridContainer = ui.direction_controls.get_child(0)
 	check(pad.get_child_count() == 9, "D-pad has nine cells")
 	var up: Button = pad.get_child(1)
