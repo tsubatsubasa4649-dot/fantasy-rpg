@@ -96,6 +96,18 @@ jobs:
           base64 -w0 godot/rpg-menu-screen.png > godot-play/rpg-menu-screen.b64
           base64 -w0 godot/rpg-formation-screen.png > godot-play/rpg-formation-screen.b64
 
+      - name: Play through village, overworld and cave, then capture actual screens
+        run: |
+          xvfb-run -a timeout 180s godot --path godot --script res://tests/playthrough_review.gd | tee playthrough-report.log
+          grep -q "PLAYTEST SUMMARY" playthrough-report.log
+          mkdir -p godot-play/playtest
+          for stage in 01-first-frame 02-first-menu 03-first-dialogue 04-ricky-recruited 05-two-companions 06-formation-recruited 07-inn-dialogue 08-after-load 09-world-entry 10-cave-entry 11-slime-choice 12-battle-command 13-battle-result 14-compact-menu 15-compact-formation; do
+            test -s "godot/review-${stage}.png"
+            cp "godot/review-${stage}.png" "godot-play/playtest/${stage}.png"
+            base64 -w0 "godot/review-${stage}.png" > "godot-play/playtest/${stage}.b64"
+          done
+          cp playthrough-report.log godot-play/playtest/playthrough-report.log
+
       - name: Commit browser build without touching original HTML game
         run: |
           git config user.name "github-actions[bot]"
