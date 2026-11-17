@@ -7,22 +7,46 @@ PLAYCHECK PASS | Main menu opens from fresh start | map=field pos=(14, 5) party=
 PLAYSHOT | 02-first-menu | 450x900 | 魔王を倒せ。十字キーで移動し、近くで「話す・調べる」。メニューで冒険の目標を確認。
 PLAYCHECK PASS | Walked by directional controls to ricky over 10 steps | map=field pos=(8, 9) party=["hero"] day=0
 PLAYSHOT | 03-first-dialogue | 450x900 | リッキー「巡回の人手が足りない。西の花壇と古井戸を見回ってほしい。」
-PLAYCHOICES | ricky | ["夜回りを手伝う","リッキーを誘う"]
-PLAYACTION | 夜回り | イベントが進行した：help_village
-PLAYCHECK PASS | Ricky's night patrol changes quest flag | map=field pos=(8, 9) party=["hero"] day=0
-PLAYCHOICES | ricky | ["リッキーを誘う"]
-PLAYACTION | リッキーを誘う | イベントが進行した：recruit_ricky 戦闘メンバーに加入！
-PLAYCHECK PASS | Ricky is recruitable from actual conversation | map=field pos=(8, 9) party=["hero", "ch_ricky"] day=0
-PLAYSHOT | 04-ricky-recruited | 450x900 | イベントが進行した：recruit_ricky 戦闘メンバーに加入！
+PLAYCHOICES | ricky | ["夜回りの依頼を受ける"]
+PLAYACTION | 夜回り | リッキーから夜回りを頼まれた。西の花壇と広場の古井戸を調べ、ここに戻ろう。
+PLAYCHECK PASS | Ricky's patrol is accepted | map=field pos=(8, 9) party=["hero"] day=0
+PLAYCHECK PASS | Accepting a quest does not auto-complete it | map=field pos=(8, 9) party=["hero"] day=0
+PLAYCHECK PASS | Walked by directional controls to patrol_flowerbed over 2 steps | map=field pos=(7, 10) party=["hero"] day=0
+PLAYSHOT | 03a-patrol-flowers | 450x900 | 西の花壇「土の匂いがする。小さな花が道沿いに並んでいる。」
+PLAYCHOICES | patrol_flowerbed | ["夜回り：花壇を点検する","花壇を眺める"]
+PLAYACTION | 花壇を点検 | 花壇の周囲を見回った。足跡を発見したが魔物の気配はない。古井戸も確かめよう。
+PLAYCHECK PASS | Player investigated the actual flowerbed | map=field pos=(7, 10) party=["hero"] day=0
+PLAYCHECK PASS | Walked by directional controls to old_well over 2 steps | map=field pos=(7, 8) party=["hero"] day=0
+PLAYSHOT | 03b-patrol-well | 450x900 | 村の古井戸「古井戸の底に月と二羽の鳥の紋章が見える。」
+PLAYCHOICES | old_well | ["夜回り：古井戸を点検する","井戸の底を調べる"]
+PLAYACTION | 古井戸を点検 | 井戸を点検した。水は清らかだが、底に月と二羽の鳥の紋章が見える。リッキーに報告しよう。
+PLAYCHECK PASS | Player investigated the actual well | map=field pos=(7, 8) party=["hero"] day=0
+PLAYCHECK PASS | Walked by directional controls to ricky over 0 steps | map=field pos=(7, 8) party=["hero"] day=0
+PLAYCHOICES | ricky | ["見回りを報告する"]
+PLAYACTION | 見回りを報告 | 見回り完了！ 花壇も井戸も異常なし。リッキーは礼を言い、共に旅する決意を固めた。
+PLAYCHECK PASS | Report patrol after both visited checkpoints | map=field pos=(7, 8) party=["hero"] day=0
+PLAYCHOICES | ricky | ["リッキーを仲間に誘う"]
+PLAYACTION | リッキーを仲間 | リッキーが仲間になった。剣を掲げ、旅に加わる。 戦闘メンバーに加入！
+PLAYCHECK PASS | Ricky joins after completed physical patrol | map=field pos=(7, 8) party=["hero", "ch_ricky"] day=0
+PLAYSHOT | 04-ricky-recruited | 450x900 | リッキーが仲間になった。剣を掲げ、旅に加わる。 戦闘メンバーに加入！
 PLAYCHECK PASS | Walked by directional controls to meri over 6 steps | map=field pos=(12, 7) party=["hero", "ch_ricky"] day=0
-PLAYCHOICES | meri | ["森の手がかりを探す","メリルを誘う"]
-PLAYACTION | 森の手がかり | イベントが進行した：find_forest_clue
-PLAYCHECK PASS | Meri's quest changes state | map=field pos=(12, 7) party=["hero", "ch_ricky"] day=0
-PLAYCHOICES | meri | ["メリルを誘う"]
-PLAYACTION | メリルを誘う | イベントが進行した：recruit_meri 戦闘メンバーに加入！
-PLAYCHECK PASS | Meri joins party from actual conversation | map=field pos=(12, 7) party=["hero", "ch_ricky", "ch_meri"] day=0
-PLAYSHOT | 05-two-companions | 450x900 | イベントが進行した：recruit_meri 戦闘メンバーに加入！
-PLAYSHOT | 06-formation-recruited | 450x900 | イベントが進行した：recruit_meri 戦闘メンバーに加入！
+PLAYCHOICES | meri | ["森の手がかり探しを引き受ける"]
+PLAYACTION | 森の手がかり探しを引き受ける | メリルから調査を頼まれた。村の南にある祈りの石を調べ、古井戸の紋章と照らし合わせよう。
+PLAYCHECK PASS | Meri's investigation is accepted | map=field pos=(12, 7) party=["hero", "ch_ricky"] day=0
+PLAYCHECK PASS | Walked by directional controls to old_shrine over 7 steps | map=field pos=(11, 13) party=["hero", "ch_ricky"] day=0
+PLAYSHOT | 05a-forest-traces | 450x900 | 村の祈りの石「丸い石に、月を挟む二羽の鳥の印が浅く刻まれている。」
+PLAYCHOICES | old_shrine | ["森の痕跡を調べる","祈りの石を調べる","手を合わせる"]
+PLAYACTION | 森の痕跡を調べる | 石の苔の下に月と二羽の鳥の印を見つけた。古井戸の紋章も確かめて、メリルに報告しよう。
+PLAYCHECK PASS | Player discovered the old shrine clue | map=field pos=(11, 13) party=["hero", "ch_ricky"] day=0
+PLAYCHECK PASS | Walked by directional controls to meri over 7 steps | map=field pos=(12, 7) party=["hero", "ch_ricky"] day=0
+PLAYCHOICES | meri | ["調査結果をメリルに報告する"]
+PLAYACTION | 調査結果をメリルに報告 | 祈りの石と古井戸の紋章が一致した。メリルは森の道が開けると気づいた。
+PLAYCHECK PASS | Meri receives investigated forest evidence | map=field pos=(12, 7) party=["hero", "ch_ricky"] day=0
+PLAYCHOICES | meri | ["メリルを仲間に誘う"]
+PLAYACTION | メリルを仲間 | メリルが仲間になった。森の風が静かに背中を押す。 戦闘メンバーに加入！
+PLAYCHECK PASS | Meri joins party after physical investigation | map=field pos=(12, 7) party=["hero", "ch_ricky", "ch_meri"] day=0
+PLAYSHOT | 05-two-companions | 450x900 | メリルが仲間になった。森の風が静かに背中を押す。 戦闘メンバーに加入！
+PLAYSHOT | 06-formation-recruited | 450x900 | メリルが仲間になった。森の風が静かに背中を押す。 戦闘メンバーに加入！
 PLAYCHECK PASS | Tap sends Meri to reserve | map=field pos=(12, 7) party=["hero", "ch_ricky"] day=0
 PLAYCHECK PASS | Tap returns Meri to active group | map=field pos=(12, 7) party=["hero", "ch_ricky", "ch_meri"] day=0
 PLAYCHECK PASS | Save through real menu command | map=field pos=(12, 7) party=["hero", "ch_ricky", "ch_meri"] day=0
@@ -56,4 +80,4 @@ PLAYCHECK PASS | Victory rewards healing herb | map=cave pos=(3, 4) party=["hero
 PLAYSHOT | 13-battle-result | 450x900 | 勝利！ HP回復の薬草を見つけた。
 PLAYSHOT | 14-compact-menu | 360x720 | 勝利！ HP回復の薬草を見つけた。
 PLAYSHOT | 15-compact-formation | 360x720 | 勝利！ HP回復の薬草を見つけた。
-PLAYTEST SUMMARY | shots=15 checks_failed=0 failures=[]
+PLAYTEST SUMMARY | shots=18 checks_failed=0 failures=[]
