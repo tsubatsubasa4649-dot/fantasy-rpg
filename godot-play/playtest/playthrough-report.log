@@ -1,0 +1,59 @@
+Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
+OpenGL API 4.5 (Core Profile) Mesa 26.0.8-1ubuntu0.3 - Compatibility - Using Device: Mesa - llvmpipe (LLVM 21.1.8, 256 bits)
+
+PLAYCHECK PASS | Fresh game starts solo in the village | map=field pos=(14, 5) party=["hero"] day=0
+PLAYSHOT | 01-first-frame | 450x900 | 魔王を倒せ。十字キーで移動し、近くで「話す・調べる」。メニューで冒険の目標を確認。
+PLAYCHECK PASS | Main menu opens from fresh start | map=field pos=(14, 5) party=["hero"] day=0
+PLAYSHOT | 02-first-menu | 450x900 | 魔王を倒せ。十字キーで移動し、近くで「話す・調べる」。メニューで冒険の目標を確認。
+PLAYCHECK PASS | Walked by directional controls to ricky over 10 steps | map=field pos=(8, 9) party=["hero"] day=0
+PLAYSHOT | 03-first-dialogue | 450x900 | リッキー「巡回の人手が足りない。西の花壇と古井戸を見回ってほしい。」
+PLAYCHOICES | ricky | ["夜回りを手伝う","リッキーを誘う"]
+PLAYACTION | 夜回り | イベントが進行した：help_village
+PLAYCHECK PASS | Ricky's night patrol changes quest flag | map=field pos=(8, 9) party=["hero"] day=0
+PLAYCHOICES | ricky | ["リッキーを誘う"]
+PLAYACTION | リッキーを誘う | イベントが進行した：recruit_ricky 戦闘メンバーに加入！
+PLAYCHECK PASS | Ricky is recruitable from actual conversation | map=field pos=(8, 9) party=["hero", "ch_ricky"] day=0
+PLAYSHOT | 04-ricky-recruited | 450x900 | イベントが進行した：recruit_ricky 戦闘メンバーに加入！
+PLAYCHECK PASS | Walked by directional controls to meri over 6 steps | map=field pos=(12, 7) party=["hero", "ch_ricky"] day=0
+PLAYCHOICES | meri | ["森の手がかりを探す","メリルを誘う"]
+PLAYACTION | 森の手がかり | イベントが進行した：find_forest_clue
+PLAYCHECK PASS | Meri's quest changes state | map=field pos=(12, 7) party=["hero", "ch_ricky"] day=0
+PLAYCHOICES | meri | ["メリルを誘う"]
+PLAYACTION | メリルを誘う | イベントが進行した：recruit_meri 戦闘メンバーに加入！
+PLAYCHECK PASS | Meri joins party from actual conversation | map=field pos=(12, 7) party=["hero", "ch_ricky", "ch_meri"] day=0
+PLAYSHOT | 05-two-companions | 450x900 | イベントが進行した：recruit_meri 戦闘メンバーに加入！
+PLAYSHOT | 06-formation-recruited | 450x900 | イベントが進行した：recruit_meri 戦闘メンバーに加入！
+PLAYCHECK PASS | Tap sends Meri to reserve | map=field pos=(12, 7) party=["hero", "ch_ricky"] day=0
+PLAYCHECK PASS | Tap returns Meri to active group | map=field pos=(12, 7) party=["hero", "ch_ricky", "ch_meri"] day=0
+PLAYCHECK PASS | Save through real menu command | map=field pos=(12, 7) party=["hero", "ch_ricky", "ch_meri"] day=0
+PLAYCHECK PASS | Walked by directional controls to inn over 6 steps | map=field pos=(15, 4) party=["hero", "ch_ricky", "ch_meri"] day=0
+PLAYSHOT | 07-inn-dialogue | 450x900 | 宿屋「旅人さん、おかえり。泊まれば傷も疲れも癒やせるよ。」
+PLAYCHOICES | inn | ["一晩休む（全員回復・+1日）","遠征の支度をする（+10日）","宿の備蓄を譲ってもらう","旅人の噂を聞く"]
+PLAYACTION | 宿の備蓄 | 宿屋の主人から予備の薬草を1個受け取った。
+PLAYCHECK PASS | Inn supplies give a real item | map=field pos=(15, 4) party=["hero", "ch_ricky", "ch_meri"] day=0
+PLAYCHOICES | inn | ["一晩休む（全員回復・+1日）","遠征の支度をする（+10日）","旅人の噂を聞く"]
+PLAYACTION | 一晩休む | 宿屋でゆっくり休んだ。仲間全員のHPが回復し、1日が過ぎた。
+PLAYCHECK PASS | Inn advances a day | map=field pos=(15, 4) party=["hero", "ch_ricky", "ch_meri"] day=1
+PLAYCHECK PASS | Load returns to saved day | map=field pos=(12, 7) party=["hero", "ch_ricky", "ch_meri"] day=0
+PLAYCHECK PASS | Load restores recruited party | map=field pos=(12, 7) party=["hero", "ch_ricky", "ch_meri"] day=0
+PLAYSHOT | 08-after-load | 450x900 | ロード完了。
+PLAYCHECK PASS | Walked by directional controls to cave_path over 10 steps | map=field pos=(17, 2) party=["hero", "ch_ricky", "ch_meri"] day=0
+PLAYCHOICES | cave_path | ["世界地図へ出る"]
+PLAYACTION | 世界地図へ出る | 世界地図｜始まりの大陸に到着。世界が2日進んだ。
+PLAYCHECK PASS | Village exit actually reaches overworld | map=world_map pos=(12, 14) party=["hero", "ch_ricky", "ch_meri"] day=2
+PLAYSHOT | 09-world-entry | 450x900 | 世界地図｜始まりの大陸に到着。世界が2日進んだ。
+PLAYCHECK PASS | Walked by directional controls to wind_cave over 24 steps | map=world_map pos=(29, 7) party=["hero", "ch_ricky", "ch_meri"] day=2
+PLAYCHOICES | wind_cave | ["洞窟に入る"]
+PLAYACTION | 洞窟に入る | 風鳴りの洞窟に到着。世界が2日進んだ。
+PLAYCHECK PASS | Overworld entry reaches Wind-Howling Cave | map=cave pos=(1, 5) party=["hero", "ch_ricky", "ch_meri"] day=4
+PLAYSHOT | 10-cave-entry | 450x900 | 風鳴りの洞窟に到着。世界が2日進んだ。
+PLAYCHECK PASS | Walked by directional controls to slime over 3 steps | map=cave pos=(3, 4) party=["hero", "ch_ricky", "ch_meri"] day=4
+PLAYSHOT | 11-slime-choice | 450x900 | スライム「ぬめる影が道を塞いでいる。」
+PLAYCHECK PASS | Slime battle starts from cave interaction | map=cave pos=(3, 4) party=["hero", "ch_ricky", "ch_meri"] day=4
+PLAYSHOT | 12-battle-command | 450x900 | 戦闘開始！ 最大4人で戦う。
+PLAYCHECK PASS | Battle resolves with selectable attack commands | map=cave pos=(3, 4) party=["hero", "ch_ricky", "ch_meri"] day=4
+PLAYCHECK PASS | Victory rewards healing herb | map=cave pos=(3, 4) party=["hero", "ch_ricky", "ch_meri"] day=4
+PLAYSHOT | 13-battle-result | 450x900 | 勝利！ HP回復の薬草を見つけた。
+PLAYSHOT | 14-compact-menu | 360x720 | 勝利！ HP回復の薬草を見つけた。
+PLAYSHOT | 15-compact-formation | 360x720 | 勝利！ HP回復の薬草を見つけた。
+PLAYTEST SUMMARY | shots=15 checks_failed=0 failures=[]
