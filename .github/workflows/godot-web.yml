@@ -57,6 +57,7 @@ jobs:
           echo "START PHASE3"; timeout 35s godot --headless --path godot --script res://tests/test_phase3.gd
           echo "START VILLAGE"; timeout 35s godot --headless --path godot --script res://tests/test_village.gd
           echo "START UI"; timeout 35s godot --headless --path godot --script res://tests/test_ui_smoke.gd
+          echo "START HD2D"; timeout 35s godot --headless --path godot --script res://tests/test_hd2d.gd
 
       - name: Diagnose Web export templates
         run: |
@@ -73,6 +74,23 @@ jobs:
           test -s godot-play/fantasy-quest32.pck
           test -s godot-play/fantasy-quest32.wasm
           grep -q "fantasy-quest32" godot-play/index.html
+
+      - name: Export separate HD-2D browser demo (classic remains default)
+        run: |
+          cp godot/project.godot godot/project.godot.classic
+          sed -i 's#run/main_scene="res://scenes/vertical_slice.tscn"#run/main_scene="res://scenes/hd2d_village.tscn"#' godot/project.godot
+          mkdir -p godot-play/hd2d
+          godot --headless --path godot --export-release "Web" "$GITHUB_WORKSPACE/godot-play/hd2d/windle-hd2d.html"
+          mv godot-play/hd2d/windle-hd2d.html godot-play/hd2d/index.html
+          mv godot/project.godot.classic godot/project.godot
+          test -s godot-play/hd2d/index.html
+          test -s godot-play/hd2d/windle-hd2d.pck
+
+      - name: Capture running HD-2D 3D village
+        run: |
+          xvfb-run -a timeout 70s godot --path godot --script res://tests/capture_hd2d.gd
+          test -s godot/hd2d-village-screen.png
+          cp godot/hd2d-village-screen.png godot-play/hd2d/village-screen.png
 
       - name: Capture real Godot village screenshot
         run: |
@@ -108,7 +126,18 @@ jobs:
           done
           cp playthrough-report.log godot-play/playtest/playthrough-report.log
 
+      - name: Upload HD-2D test build on feature branches
+        if: github.ref != 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: hd2d-village-preview
+          path: |
+            godot-play/hd2d/
+            godot-play/playtest/playthrough-report.log
+          if-no-files-found: error
+
       - name: Commit browser build without touching original HTML game
+        if: github.ref == 'refs/heads/main'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
