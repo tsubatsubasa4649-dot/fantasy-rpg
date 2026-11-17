@@ -25,6 +25,7 @@ func _ready() -> void:
 	_build_lighting()
 	_build_ground()
 	_build_village()
+	_build_gardens()
 	_build_actors()
 	_build_camera()
 	_build_hud()
@@ -94,8 +95,8 @@ func _build_lighting() -> void:
 func _build_ground() -> void:
 	_box("Raised earth platform", Vector3(0, -0.45, 0), Vector3(30, 0.9, 26), _mat(Color("#705946")))
 	var atlas := "res://assets/village_atlas.b64"
-	ground_materials["grass"] = _textured_material(_tile_texture(atlas, Rect2i(0, 0, 16, 16)), Color("#688b53"))
-	ground_materials["cobble"] = _textured_material(_tile_texture(atlas, Rect2i(32, 0, 16, 16)), Color("#aa9170"))
+	ground_materials["grass"] = _textured_material(_tile_texture(atlas, Rect2i(0, 0, 16, 16)), Color("#607b57"))
+	ground_materials["cobble"] = _textured_material(_tile_texture(atlas, Rect2i(32, 0, 16, 16)), Color("#777977"))
 	ground_materials["flowers"] = _textured_material(_tile_texture(atlas, Rect2i(0, 16, 16, 16)), Color("#819858"))
 	var places: Dictionary = {"grass": [], "cobble": [], "flowers": []}
 	for z in range(-MAP_HALF_Z, MAP_HALF_Z):
@@ -241,6 +242,26 @@ func _add_npc(name: String, pos: Vector3, atlas_index: int, text: String) -> voi
 	npc.name = name
 	npc_records.append({"name": name, "position": pos, "dialogue": text, "sprite": npc})
 
+func _build_gardens() -> void:
+	# Geometric fences plus the original commissioned flower tile as foliage.
+	var flower_texture: Texture2D = _tile_texture("res://assets/village_atlas.b64", Rect2i(0, 16, 16, 16))
+	var wood := _mat(Color("#594637"))
+	for side in [-1, 1]:
+		for n in range(5):
+			var x: float = side * (4.5 + n * 0.72)
+			_box("Garden fence post", Vector3(x, 0.38, -7.5), Vector3(0.13, 0.76, 0.16), wood)
+			if n < 4:
+				_box("Garden fence rail", Vector3(x + side * 0.36, 0.53, -7.5), Vector3(0.74, 0.10, 0.12), wood)
+		for n in range(8):
+			var x: float = side * (5.0 + float(n % 4) * 0.77)
+			var z: float = -6.9 + float(n / 4) * 0.75
+			if flower_texture != null:
+				var flower := _sprite(flower_texture, Vector3(x, 0.43, z), 0.055)
+				flower.name = "Artist source flowers"
+	for x in [-11.0, -10.2, -9.4, -8.6, -7.8, 6.8, 7.6, 8.4, 9.2]:
+		if flower_texture != null:
+			_sprite(flower_texture, Vector3(x, 0.36, 1.1), 0.046)
+
 func _build_actors() -> void:
 	hero_anim = {
 		"type": "sheet", "source": "res://assets/hero_walk.b64",
@@ -380,6 +401,37 @@ func _build_hud() -> void:
 	interaction_button.offset_top = -110
 	interaction_button.offset_bottom = -35
 	interaction_button.pressed.connect(_interact)
+
+	# Portrait HUD from existing 32px party portrait atlas; shown on wide screens.
+	var strip := _panel()
+	strip.anchor_left = 0.34
+	strip.anchor_right = 0.982
+	strip.anchor_top = 1.0
+	strip.anchor_bottom = 1.0
+	strip.offset_top = -80
+	strip.offset_bottom = -12
+	ui.add_child(strip)
+	strip.visible = get_viewport().get_visible_rect().size.x >= 800
+	var party := HBoxContainer.new()
+	party.add_theme_constant_override("separation", 14)
+	strip.add_child(party)
+	var portrait_source := "res://assets/party_portraits.b64"
+	var names := ["主人公", "リッキー", "メリル", "ゴロー"]
+	for i in range(names.size()):
+		var slot := HBoxContainer.new()
+		slot.add_theme_constant_override("separation", 6)
+		party.add_child(slot)
+		var portrait := TextureRect.new()
+		portrait.texture = _tile_texture(portrait_source, Rect2i(i * 32, 0, 32, 32))
+		portrait.custom_minimum_size = Vector2(44, 44)
+		portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		slot.add_child(portrait)
+		var name_label := Label.new()
+		name_label.text = names[i]
+		name_label.add_theme_font_size_override("font_size", 16)
+		slot.add_child(name_label)
 
 func _can_walk(pos: Vector3) -> bool:
 	if pos.x < -13.1 or pos.x > 13.1 or pos.z < -11.1 or pos.z > 11.1:
