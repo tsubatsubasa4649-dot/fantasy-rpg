@@ -39,7 +39,7 @@ func _mat(color: Color, glow: bool = false) -> StandardMaterial3D:
 	if glow:
 		mat.emission_enabled = true
 		mat.emission = color
-		mat.emission_energy_multiplier = 1.5
+		mat.emission_energy_multiplier = 0.65
 	return mat
 
 func _box(name: String, at: Vector3, dimensions: Vector3, mat: Material, tilt: float = 0.0) -> MeshInstance3D:
@@ -79,14 +79,14 @@ func _build_lighting() -> void:
 	env.background_color = Color("#ef9c74")
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("#f2bf9d")
-	env.ambient_light_energy = 0.75
+	env.ambient_light_energy = 0.42
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env_node.environment = env
 	add_child(env_node)
 	var sun := DirectionalLight3D.new()
 	sun.name = "SunsetSun"
 	sun.light_color = Color("#ffce84")
-	sun.light_energy = 1.1
+	sun.light_energy = 0.82
 	sun.shadow_enabled = true
 	sun.rotation = Vector3(deg_to_rad(-43), deg_to_rad(-35), deg_to_rad(-12))
 	add_child(sun)
@@ -95,7 +95,7 @@ func _build_ground() -> void:
 	_box("Raised earth platform", Vector3(0, -0.45, 0), Vector3(30, 0.9, 26), _mat(Color("#705946")))
 	var atlas := "res://assets/village_atlas.b64"
 	ground_materials["grass"] = _textured_material(_tile_texture(atlas, Rect2i(0, 0, 16, 16)), Color("#688b53"))
-	ground_materials["cobble"] = _textured_material(_tile_texture(atlas, Rect2i(48, 48, 16, 16)), Color("#aa9170"))
+	ground_materials["cobble"] = _textured_material(_tile_texture(atlas, Rect2i(32, 0, 16, 16)), Color("#aa9170"))
 	ground_materials["flowers"] = _textured_material(_tile_texture(atlas, Rect2i(0, 16, 16, 16)), Color("#819858"))
 	var places: Dictionary = {"grass": [], "cobble": [], "flowers": []}
 	for z in range(-MAP_HALF_Z, MAP_HALF_Z):
@@ -126,10 +126,10 @@ func _build_ground() -> void:
 			Vector3(2.1, 0.16 + 0.18 * i, 0.85), _mat(Color("#aa9581")))
 
 func _house(name: String, at: Vector3, size: Vector3, inn: bool = false) -> void:
-	var walls := _mat(Color("#c0a68b"))
+	var walls := _mat(Color("#ac9b87"))
 	var timber := _mat(Color("#59402f"))
-	var roof := _mat(Color("#7d3d36") if inn else Color("#66514b"))
-	var glass := _mat(Color("#ffd38a"), true)
+	var roof := _mat(Color("#6c4039") if inn else Color("#5b4a43"))
+	var glass := _mat(Color("#f4b868"), true)
 	var base_y: float = 0.0
 	_box(name + " plaster", at + Vector3(0, size.y / 2.0 + base_y, 0), size, walls)
 	for side in [-1, 1]:
@@ -147,6 +147,13 @@ func _house(name: String, at: Vector3, size: Vector3, inn: bool = false) -> void
 	_box(name + " chimney", at + Vector3(size.x * 0.3, size.y + 1.15, -size.z * 0.25),
 		Vector3(0.42, 1.35, 0.48), _mat(Color("#8c7770")))
 	blockers.append(Rect2(Vector2(at.x - size.x / 2, at.z - size.z / 2), Vector2(size.x, size.z)))
+	# Sprite facade reuses commissioned village art, backed by shadow-casting 3D walls and roof.
+	var facade_texture: Texture2D = _tile_texture("res://assets/village_props.b64", Rect2i(32 if inn else 0, 0, 32, 32))
+	if facade_texture != null:
+		var facade := _sprite(facade_texture, at + Vector3(0, size.x * 0.46, size.z / 2.0 + 0.17), size.x / 35.0)
+		facade.billboard = BaseMaterial3D.BILLBOARD_DISABLED
+		facade.shaded = true
+		facade.name = name + " illustrated facade"
 	if inn:
 		var label := Label3D.new()
 		label.text = "宿屋  INN"
@@ -197,13 +204,17 @@ func _build_village() -> void:
 	stone.bottom_radius = 1.25
 	stone.height = 0.82
 	well.mesh = stone
-	well.material_override = _mat(Color("#b6a38a"))
+	well.material_override = _mat(Color("#827260"))
 	well.position = Vector3(0, 0.44, -2.2)
 	add_child(well)
 	for side in [-1, 1]:
 		_box("Well pillar", Vector3(side * 1.0, 1.45, -2.2),
 			Vector3(0.2, 2.2, 0.2), _mat(Color("#70503a")))
-	_box("Well roof", Vector3(0, 2.67, -2.2), Vector3(2.85, 0.23, 2.0), _mat(Color("#765346")))
+	_box("Well roof", Vector3(0, 2.55, -2.2), Vector3(2.75, 0.16, 2.0), _mat(Color("#544033")))
+	var well_texture: Texture2D = _tile_texture("res://assets/village_props.b64", Rect2i(64, 0, 32, 32))
+	if well_texture != null:
+		var well_art := _sprite(well_texture, Vector3(0, 1.2, -1.0), 0.075)
+		well_art.name = "Illustrated Well"
 	blockers.append(Rect2(-Vector2.ONE * 1.4 + Vector2(0, -2.2), Vector2(2.8, 2.8)))
 	for place in [Vector3(-12, 0, -2), Vector3(12, 0, -8), Vector3(-12, 0, 8),
 		Vector3(12, 0, 10), Vector3(-4, 0, -10), Vector3(4, 0, -10)]:
@@ -251,16 +262,16 @@ func _build_actors() -> void:
 func _build_camera() -> void:
 	camera = Camera3D.new()
 	camera.name = "HD2DObliqueCamera"
-	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = 16.0
+	camera.projection = Camera3D.PROJECTION_PERSPECTIVE
+	camera.fov = 43.0
 	camera.current = true
 	add_child(camera)
 
 func _update_camera(delta: float) -> void:
 	if camera == null or hero == null:
 		return
-	var focus: Vector3 = hero.position + Vector3(0, 0.3, -0.5)
-	var desired: Vector3 = focus + Vector3(0, 14.5, 15.5)
+	var focus: Vector3 = hero.position + Vector3(0, 0.2, -2.2)
+	var desired: Vector3 = hero.position + Vector3(0, 10.5, 17.0)
 	camera.global_position = camera.global_position.lerp(desired, clampf(delta * 3.2, 0.0, 1.0))
 	camera.look_at(focus, Vector3.UP)
 
