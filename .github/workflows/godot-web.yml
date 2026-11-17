@@ -67,12 +67,12 @@ jobs:
         run: |
           mkdir -p godot-play
           # Fresh asset basename invalidates Safari's cached .pck/.wasm/.js files.
-          godot --headless --verbose --path godot --export-release "Web" "$GITHUB_WORKSPACE/godot-play/fantasy-village29.html"
-          mv godot-play/fantasy-village29.html godot-play/index.html
+          godot --headless --verbose --path godot --export-release "Web" "$GITHUB_WORKSPACE/godot-play/fantasy-menu30.html"
+          mv godot-play/fantasy-menu30.html godot-play/index.html
           test -s godot-play/index.html
-          test -s godot-play/fantasy-village29.pck
-          test -s godot-play/fantasy-village29.wasm
-          grep -q "fantasy-village29" godot-play/index.html
+          test -s godot-play/fantasy-menu30.pck
+          test -s godot-play/fantasy-menu30.wasm
+          grep -q "fantasy-menu30" godot-play/index.html
 
       - name: Capture real Godot village screenshot
         run: |
@@ -89,6 +89,12 @@ jobs:
           cp godot/village-west-screen.png godot-play/village-west-screen.png
           base64 -w0 godot/village-west-screen.png > godot-play/village-west-screen.b64
           test -s godot-play/village-west-screen.b64
+          test -s godot/rpg-menu-screen.png
+          test -s godot/rpg-formation-screen.png
+          cp godot/rpg-menu-screen.png godot-play/rpg-menu-screen.png
+          cp godot/rpg-formation-screen.png godot-play/rpg-formation-screen.png
+          base64 -w0 godot/rpg-menu-screen.png > godot-play/rpg-menu-screen.b64
+          base64 -w0 godot/rpg-formation-screen.png > godot-play/rpg-formation-screen.b64
 
       - name: Commit browser build without touching original HTML game
         run: |

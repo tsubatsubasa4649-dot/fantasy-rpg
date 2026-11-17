@@ -3,8 +3,9 @@ extends Control
 const GameSession = preload("res://scripts/game_session.gd")
 const BattleEngine = preload("res://scripts/battle_engine.gd")
 const SpriteAnimation = preload("res://scripts/sprite_animation.gd")
+const PartyMenuUI = preload("res://scripts/party_menu_ui.gd")
 const TILE_SIZE := 44
-const BUILD_ID := "RPG VILLAGE-29 / CAMERA-22"
+const BUILD_ID := "RPG MENU-30 / CAMERA-22"
 const JAPANESE_FONT = preload("res://assets/NotoSansJP.ttf")
 var game = GameSession.new()
 var battle = BattleEngine.new()
@@ -39,6 +40,7 @@ var dialogue_panel: Panel
 var action_scroll: ScrollContainer
 var menu_button: Button
 var management_panel: HBoxContainer
+var party_menu_ui: Control
 var combat_controls: HBoxContainer
 var screen_mode: String = "explore"
 var cell_size: int = 44
@@ -206,11 +208,28 @@ func _load_art() -> void:
 			image = _trim_transparent_padding(image)
 		textures[id] = ImageTexture.create_from_image(image)
 	_load_party_atlas()
+	_load_party_portraits()
 	_load_walk_frames()
 	_load_npc_idles()
 	_load_world_tiles()
 	_load_village_tiles()
 	_load_village_props()
+
+func _load_party_portraits() -> void:
+	# Newly commissioned headshots, four real 32x32 pixel-art portraits.
+	var path: String = "res://assets/party_portraits.b64"
+	if not FileAccess.file_exists(path):
+		push_warning("Menu face icon atlas missing")
+		return
+	var img := Image.new()
+	var bytes: PackedByteArray = Marshalls.base64_to_raw(FileAccess.get_file_as_string(path).strip_edges())
+	if img.load_png_from_buffer(bytes) != OK or img.get_width() != 128 or img.get_height() != 32:
+		push_warning("Menu portrait sheet has invalid dimensions")
+		return
+	var ids: Array[String] = ["hero", "ricky", "meri", "goro"]
+	for i in range(ids.size()):
+		var face_image: Image = img.get_region(Rect2i(i * 32, 0, 32, 32))
+		textures["portrait_" + ids[i]] = ImageTexture.create_from_image(face_image)
 
 func _load_npc_idles() -> void:
 	# Hand-created character artwork at full presentation resolution.
@@ -585,7 +604,7 @@ func _build_ui() -> void:
 	hud_panel.add_child(hud_title)
 
 	build_label = Label.new()
-	build_label.text = "VILLAGE-29"
+	build_label.text = "MENU-30"
 	build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	build_label.add_theme_font_size_override("font_size", 11)
 	build_label.add_theme_color_override("font_color", Color("#9fb5d8"))
@@ -750,6 +769,9 @@ func _build_ui() -> void:
 		if str(entry[0]) == "音楽 ON":
 			music_toggle_button = manage_button
 	management_panel.visible = false
+	party_menu_ui = PartyMenuUI.new()
+	root_column.add_child(party_menu_ui)
+	party_menu_ui.attach(self)
 
 	battle_panel.visible = false
 	combat_controls.visible = false
@@ -864,10 +886,11 @@ func _toggle_menu() -> void:
 	_unlock_audio()
 	if battle_active:
 		return
-	management_panel.visible = not management_panel.visible
-	menu_button.text = "閉じる" if management_panel.visible else "メニュー"
-	if management_panel.visible:
-		_show_message(_quest_hint() + "\nセーブで進行を保存。ロードで前の旅に戻れる。")
+	if party_menu_ui.visible:
+		party_menu_ui.close()
+	else:
+		_end_hold()
+		party_menu_ui.show_home()
 
 
 func _add_pad_gap(parent: GridContainer) -> void:
@@ -888,6 +911,8 @@ func _add_direction_button(parent: GridContainer, text_value: String, vector: Ve
 	return button
 
 func _begin_hold(vector: Vector2i) -> void:
+	if party_menu_ui != null and party_menu_ui.visible:
+		return
 	_unlock_audio()
 	held_direction = vector
 	repeat_clock = FIRST_REPEAT_DELAY
@@ -898,6 +923,9 @@ func _end_hold() -> void:
 	repeat_clock = 0.0
 
 func _process(delta: float) -> void:
+	if party_menu_ui != null and party_menu_ui.visible:
+		_end_hold()
+		return
 	# Walk animation advances independently of whether the player keeps a key held.
 	if walking:
 		walk_elapsed += delta
@@ -1159,7 +1187,7 @@ func _show_nearby_actions() -> void:
 		option.custom_minimum_size.y = 53
 
 func _walk(dx: int, dy: int) -> void:
-	if walking or battle_active or not game.state.get("ending", "").is_empty():
+	if walking or battle_active or (party_menu_ui != null and party_menu_ui.visible) or not game.state.get("ending", "").is_empty():
 		return
 	_unlock_audio()
 	facing = Vector2i(dx, dy)
@@ -1265,17 +1293,9 @@ func _travel(destination: String, requested_spawn: Array = []) -> void:
 	_show_message(str(_map().get("name", "")) + "に到着。世界が2日進んだ。")
 
 func _auto_party() -> void:
-	var roster: Array = game.state.get("recruited", [])
-	var selected: Array = []
-	for id in roster:
-		if selected.size() >= 3:
-			break
-		selected.append(id)
-	if game.set_party(selected):
-		_show_message("編成を変更：" + ", ".join(game.state["party"]))
-	else:
-		_show_message("編成変更に失敗した。")
-	_refresh()
+	# Keep the old callback for compatibility, but never auto-override
+	# the player's selected party members.
+	party_menu_ui.show_formation()
 
 func _begin_battle(enemy_id: String) -> void:
 	var enemy: Dictionary = {}
@@ -1436,6 +1456,10 @@ func _show_message(message: String) -> void:
 		message_label.text = message
 
 func _unhandled_key_input(event: InputEvent) -> void:
+	if party_menu_ui != null and party_menu_ui.visible:
+		if event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_ESCAPE, KEY_BACKSPACE]:
+			party_menu_ui.back()
+		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_UP, KEY_W:

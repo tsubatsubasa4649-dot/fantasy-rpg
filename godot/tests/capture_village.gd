@@ -54,4 +54,22 @@ func _capture() -> void:
 		quit(1)
 		return
 	print("WEST VILLAGE SCREENSHOT SAVED")
+	# Screenshot the actual menu with four recruited portraits.
+	game.game.state["recruited"] = ["ch_ricky", "ch_meri", "ch_goro"]
+	game.game.set_party(["ch_ricky", "ch_meri", "ch_goro"])
+	game.party_menu_ui.show_home()
+	await process_frame
+	await process_frame
+	if root.get_texture().get_image().save_png("res://rpg-menu-screen.png") != OK:
+		push_error("SCREENSHOT: menu screenshot failed")
+		quit(1)
+		return
+	game.party_menu_ui.show_formation()
+	await process_frame
+	await process_frame
+	if root.get_texture().get_image().save_png("res://rpg-formation-screen.png") != OK:
+		push_error("SCREENSHOT: formation screenshot failed")
+		quit(1)
+		return
+	print("MENU AND FORMATION SCREENSHOTS SAVED")
 	quit(0)
