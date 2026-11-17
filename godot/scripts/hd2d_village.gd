@@ -22,6 +22,11 @@ var heading: Label
 var _last_facing := Vector2i.DOWN
 
 func _ready() -> void:
+	# Safari WebGL 2.0 has stricter memory limits than desktop GLES3.
+	# Keep the real 3D geometry but cap render work for browser sessions.
+	if OS.has_feature("web"):
+		Engine.max_fps = 30
+		get_viewport().msaa_3d = Viewport.MSAA_DISABLED
 	_build_lighting()
 	_build_ground()
 	_build_village()
@@ -88,7 +93,7 @@ func _build_lighting() -> void:
 	sun.name = "SunsetSun"
 	sun.light_color = Color("#ffce84")
 	sun.light_energy = 0.82
-	sun.shadow_enabled = true
+	sun.shadow_enabled = not OS.has_feature("web")
 	sun.rotation = Vector3(deg_to_rad(-43), deg_to_rad(-35), deg_to_rad(-12))
 	add_child(sun)
 

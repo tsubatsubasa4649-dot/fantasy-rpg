@@ -5,6 +5,7 @@ on:
     paths:
       - "godot/**"
       - "tools/build_audio.py"
+      - "tools/patch_hd2d_web.py"
       - ".github/workflows/godot-web.yml"
   workflow_dispatch:
 
@@ -80,11 +81,36 @@ jobs:
           cp godot/project.godot godot/project.godot.classic
           sed -i 's#run/main_scene="res://scenes/vertical_slice.tscn"#run/main_scene="res://scenes/hd2d_village.tscn"#' godot/project.godot
           mkdir -p godot-play/hd2d
-          godot --headless --path godot --export-release "Web" "$GITHUB_WORKSPACE/godot-play/hd2d/windle-hd2d.html"
-          mv godot-play/hd2d/windle-hd2d.html godot-play/hd2d/index.html
+          # Preserve the bundle referenced by the previous index.html. Safari may still
+          # have an older index cached briefly after GitHub Pages publishes a new one.
+          previous_bundle="$(python3 - <<'PY'
+          import re
+          from pathlib import Path
+          html = Path("godot-play/hd2d/index.html")
+          match = re.search(r'"executable":"(windle-hd2d-[0-9a-f]{10})"', html.read_text()) if html.exists() else None
+          print(match.group(1) if match else "")
+          PY
+          )"
+          for file in godot-play/hd2d/windle-hd2d-*; do
+            [ -f "$file" ] || continue
+            if [ -n "$previous_bundle" ] && [[ "$file" == *"/${previous_bundle}."* ]]; then
+              continue
+            fi
+            rm -f "$file"
+          done
+          # Legacy unversioned files remain temporarily for Safari users with old cached HTML.
+          # Each build gets unique JS/WASM/PCK names: iPhone Safari must never mix
+          # a cached old .pck with a new .wasm or engine script.
+          basename="windle-hd2d-${GITHUB_SHA:0:10}"
+          godot --headless --path godot --export-release "Web" "$GITHUB_WORKSPACE/godot-play/hd2d/${basename}.html"
+          mv "godot-play/hd2d/${basename}.html" godot-play/hd2d/index.html
           mv godot/project.godot.classic godot/project.godot
+          python3 tools/patch_hd2d_web.py godot-play/hd2d/index.html
           test -s godot-play/hd2d/index.html
-          test -s godot-play/hd2d/windle-hd2d.pck
+          test -s "godot-play/hd2d/${basename}.pck"
+          test -s "godot-play/hd2d/${basename}.wasm"
+          grep -q "${basename}" godot-play/hd2d/index.html
+          grep -q 'hd2d-recovery' godot-play/hd2d/index.html
 
       - name: Capture running HD-2D 3D village
         run: |
