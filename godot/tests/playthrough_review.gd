@@ -2,7 +2,7 @@ extends SceneTree
 ## Automated input-driven exploratory playtest. Screenshots are from real Godot scenes.
 ## This does not mutate gameplay code or fake event/recruitment progress.
 const Scene = preload("res://scenes/vertical_slice.tscn")
-var actor: Control
+var actor
 var failures: Array[String] = []
 var notes: Array[String] = []
 var snap_count: int = 0
