@@ -81,6 +81,9 @@ jobs:
           cp godot/project.godot godot/project.godot.classic
           sed -i 's#run/main_scene="res://scenes/vertical_slice.tscn"#run/main_scene="res://scenes/hd2d_village.tscn"#' godot/project.godot
           mkdir -p godot-play/hd2d
+          # Remove older engine bundles before exporting to avoid a 45MB Git history increase
+          # on every deploy. Preserve /hd2d/index.html and the reference screenshot.
+          find godot-play/hd2d -maxdepth 1 -type f -name "windle-hd2d*" -delete
           # Each build gets unique JS/WASM/PCK names: iPhone Safari must never mix
           # a cached old .pck with a new .wasm or engine script.
           basename="windle-hd2d-${GITHUB_SHA:0:10}"
